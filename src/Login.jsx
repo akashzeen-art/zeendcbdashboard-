@@ -128,13 +128,7 @@ export default function Login({ onLogin }) {
             </button>
           </form>
 
-          <div className="login-demo-hint">
-            <span>Demo credentials</span>
-            <div className="login-demo-creds">
-              <code>{DEMO_EMAIL}</code>
-              <code>{DEMO_PASS}</code>
-            </div>
-          </div>
+
         </div>
 
         <div className="login-footer">
