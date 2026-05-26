@@ -1,4 +1,4 @@
-const BASE_URL = '/vaspay';
+const BASE_URL = 'https://wap.zeendcb.com/vaspay';
 
 function buildParams(filters) {
   const params = new URLSearchParams();
