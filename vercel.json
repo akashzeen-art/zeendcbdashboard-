@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/vaspay/:path*",
+      "destination": "https://wap.zeendcb.com/vaspay/:path*"
+    }
+  ]
+}
