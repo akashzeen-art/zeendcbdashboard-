@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { fetchSummaryDetails } from './api';
 import Pagination from './Pagination';
 import SkeletonRows from './SkeletonRows';
+import * as XLSX from 'xlsx';
 
 const COLS = [
   { key: 'transactionId',  label: 'Transaction ID',  type: 'mono' },
@@ -71,6 +72,18 @@ export default function SummaryDetailsTable({ filters, onTotalChange }) {
     }
   };
 
+  const exportExcel = () => {
+    if (!data.length) return;
+    const rows = data.map(r =>
+      Object.fromEntries(COLS.map(c => [c.label, r[c.key] ?? '']))
+    );
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = COLS.map(c => ({ wch: Math.max(c.label.length, 14) }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+    XLSX.writeFile(wb, `transactions_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
   return (
     <div className="table-section">
       <div className="table-header">
@@ -83,6 +96,9 @@ export default function SummaryDetailsTable({ filters, onTotalChange }) {
         </div>
         <div className="table-header-right">
           {!loading && <span className="record-count">{total} records</span>}
+          {!loading && data.length > 0 && (
+            <button className="ct-export-btn" onClick={exportExcel}>⬇ Export Excel</button>
+          )}
         </div>
       </div>
 

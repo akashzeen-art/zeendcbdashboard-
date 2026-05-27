@@ -15,7 +15,7 @@ const COLS = [
   { key: 'pricePoint',        label: 'Price Point',   type: 'amount' },
 ];
 
-export default function SummaryTable({ filters, onTotalChange, onStatsChange }) {
+export default function SummaryTable({ filters, onTotalChange }) {
   const [data, setData] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -35,19 +35,6 @@ export default function SummaryTable({ filters, onTotalChange, onStatsChange }) 
         setData(rows);
         setTotal(res.total || 0);
         onTotalChange?.(res.total || 0);
-        if (rows.length > 0) {
-          const agg = rows.reduce((acc, r) => ({
-            activation: (acc.activation || 0) + (r.activation || 0),
-            renewal: (acc.renewal || 0) + (r.renewal || 0),
-            churn: (acc.churn || 0) + (r.churn || 0),
-            activationPending: (acc.activationPending || 0) + (r.activationPending || 0),
-            pricePoint: r.pricePoint,
-            operatorName: r.operatorName,
-          }), {});
-          onStatsChange?.(agg);
-        } else {
-          onStatsChange?.(null);
-        }
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
