@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
-import { fetchFilterOptions } from './api';
+import { fetchFilterOptions, fetchSummaryDetails } from './api';
 import DateRangePicker from './DateRangePicker';
 
 const today    = new Date().toISOString().split('T')[0];
 const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
 
-const ADNETWORKS = ['Google Ads', 'Meta Ads', 'TikTok Ads', 'Programmatic', 'Direct', 'Organic'];
-
+// Dropdown — real options normal, dummy options greyed out
 export function Dropdown({ label, value, options, onChange, placeholder = 'All', loading = false }) {
   const [open, setOpen] = useState(false);
   const ref = useRef();
@@ -35,10 +34,18 @@ export function Dropdown({ label, value, options, onChange, placeholder = 'All',
           </div>
           {options.length === 0 && !loading && <div className="fb-option fb-option-empty">No options</div>}
           {options.map(opt => {
-            const v = opt.value ?? opt; const l = opt.label ?? opt;
+            const v    = opt.value ?? opt;
+            const l    = opt.label ?? opt;
+            const demo = opt.demo === true;
             return (
-              <div key={v} className={`fb-option ${value === v ? 'active' : ''}`} onClick={() => { onChange(v); setOpen(false); }}>
-                {value === v && <span className="fb-check">✓</span>}{l}
+              <div
+                key={v}
+                className={`fb-option ${value === v ? 'active' : ''} ${demo ? 'fb-option-demo' : ''}`}
+                onClick={() => { onChange(v); setOpen(false); }}
+              >
+                {value === v && <span className="fb-check">✓</span>}
+                {l}
+                {demo && <span className="fb-demo-tag">demo</span>}
               </div>
             );
           })}
@@ -50,20 +57,32 @@ export function Dropdown({ label, value, options, onChange, placeholder = 'All',
 
 // Hook to load API-driven filter options
 export function useFilterOptions() {
-  const [allRows,   setAllRows]   = useState([]);
-  const [billers,   setBillers]   = useState([]);
-  const [operators, setOperators] = useState([]);
-  const [services,  setServices]  = useState([]);
-  const [loading,   setLoading]   = useState(true);
+  const [allRows,    setAllRows]    = useState([]);
+  const [billers,    setBillers]    = useState([]);
+  const [operators,  setOperators]  = useState([]);
+  const [services,   setServices]   = useState([]);
+  const [adNetworks, setAdNetworks] = useState([]);
+  const [loading,    setLoading]    = useState(true);
 
   useEffect(() => {
-    fetchFilterOptions()
-      .then(res => {
-        const rows = res.data || [];
+    const end   = new Date().toISOString().split('T')[0];
+    const start = new Date(Date.now() - 180 * 86400000).toISOString().split('T')[0];
+
+    Promise.all([
+      fetchFilterOptions(),
+      fetchSummaryDetails({ startDate: start, endDate: end, page: 1, size: 500 }),
+    ])
+      .then(([summaryRes, detailsRes]) => {
+        const rows = summaryRes.data || [];
         setAllRows(rows);
         setBillers([...new Set(rows.map(r => r.billerName).filter(Boolean))].sort());
         setOperators(buildOps(rows));
         setServices([...new Set(rows.map(r => r.serviceName).filter(Boolean))].sort());
+
+        // Ad Networks from requestMode field in details API
+        const detailRows = detailsRes.data || [];
+        const nets = [...new Set(detailRows.map(r => r.requestMode).filter(Boolean))].sort();
+        setAdNetworks(nets.map(n => ({ value: n, label: n, demo: false })));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -72,7 +91,7 @@ export function useFilterOptions() {
   function buildOps(rows) {
     return [...new Map(rows.filter(r => r.operatorId).map(r => [
       String(r.operatorId),
-      { value: String(r.operatorId), label: r.operatorName ? `${r.operatorName} (${r.operatorId})` : String(r.operatorId) }
+      { value: String(r.operatorId), label: r.operatorName ? `${r.operatorName} (${r.operatorId})` : String(r.operatorId), demo: false }
     ])).values()];
   }
 
@@ -82,14 +101,13 @@ export function useFilterOptions() {
     setServices([...new Set(filtered.map(r => r.serviceName).filter(Boolean))].sort());
   }
 
-  return { billers, operators, services, loading, cascade };
+  return { billers, operators, services, adNetworks, loading, cascade };
 }
 
-// Summary & Reports filter bar
 export function SummaryFilterBar({ onApply }) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const { billers, operators, services, loading, cascade } = useFilterOptions();
+  const { billers, operators, services, adNetworks, loading, cascade } = useFilterOptions();
   const [dateRange, setDateRange] = useState({ s: startOfDay(subDays(new Date(),30)), e: endOfDay(new Date()) });
   const [f, setF] = useState({ startDate: monthAgo, endDate: today, billerName: '', operatorId: '', serviceName: '', adnetwork: '' });
 
@@ -130,9 +148,16 @@ export function SummaryFilterBar({ onApply }) {
               <DateRangePicker value={dateRange} onChange={handleDate} />
             </div>
             <Dropdown label="Biller" value={f.billerName} options={billers} onChange={set('billerName')} placeholder="All Billers" loading={loading} />
-            <Dropdown label="Geo / Operator / Service" value={f.operatorId} options={operators} onChange={set('operatorId')} placeholder="All Operators" loading={loading} />
+            <Dropdown label="Geo / Operator" value={f.operatorId} options={operators} onChange={set('operatorId')} placeholder="All Operators" loading={loading} />
             <Dropdown label="Service / Product" value={f.serviceName} options={services} onChange={set('serviceName')} placeholder="All Services" loading={loading} />
-            <Dropdown label="Ad Network" value={f.adnetwork} options={ADNETWORKS} onChange={set('adnetwork')} placeholder="All Networks" />
+            <Dropdown
+              label="Ad Network"
+              value={f.adnetwork}
+              options={adNetworks}
+              onChange={set('adnetwork')}
+              placeholder="All Networks"
+              loading={loading}
+            />
             <div className="filter-actions">
               <button type="submit" className="btn-apply" disabled={submitting}>{submitting ? '⏳ Applying…' : '🔍 Apply'}</button>
               <button type="button" className="btn-reset" onClick={handleReset}>↺ Reset</button>

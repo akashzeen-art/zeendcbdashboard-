@@ -8,17 +8,18 @@ export default defineConfig({
       '/vaspay': {
         target: 'https://wap.zeendcb.com',
         changeOrigin: true,
-        secure: true,
+        secure: false,
+        rewrite: (path) => path,
       },
       '/postbacks': {
         target: 'https://postback.v1mobi.com',
         changeOrigin: true,
-        secure: true,
+        secure: false,
       },
       '/optimize': {
         target: 'https://postback.v1mobi.com',
         changeOrigin: true,
-        secure: true,
+        secure: false,
       },
     },
   },
