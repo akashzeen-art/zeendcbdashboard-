@@ -1641,3 +1641,12 @@ tbody tr:hover .ct-td-dummy { background: #f1f5f9 !important; }
   padding: .1rem .4rem;
   border-radius: 4px;
 }
+
+/* Null / missing data cell */
+.null-cell {
+  color: #cbd5e1;
+  font-size: .85rem;
+  font-weight: 500;
+  letter-spacing: .5px;
+  user-select: none;
+}

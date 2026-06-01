@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { fetchSummaryDetails } from './api';
 import Pagination from './Pagination';
 import SkeletonRows from './SkeletonRows';
+import NullCell from './NullCell';
 import * as XLSX from 'xlsx';
 
 const COLS = [
@@ -51,7 +52,7 @@ export default function SummaryDetailsTable({ filters, onTotalChange }) {
   const renderCell = (row, col) => {
     const val = row[col.key];
     if ((val === null || val === undefined) && col.type !== 'status') {
-      return <span style={{ color: 'var(--text-light)' }}>—</span>;
+      return <NullCell />;
     }
     switch (col.type) {
       case 'primary':  return <span className="td-primary">{val}</span>;
@@ -60,15 +61,15 @@ export default function SummaryDetailsTable({ filters, onTotalChange }) {
       case 'datetime': return <span style={{ fontSize: '.78rem', color: 'var(--text-muted)' }}>{val}</span>;
       case 'status': {
         const cls = STATUS_MAP[val] || '';
-        return <span className={`badge ${cls}`}>{val ?? '—'}</span>;
+        return val ? <span className={`badge ${cls}`}>{val}</span> : <NullCell />;
       }
       case 'action': {
         const cls = ACTION_MAP[(val || '').toUpperCase()] || 'default';
-        return <span className={`action-badge ${cls}`}>{val}</span>;
+        return val ? <span className={`action-badge ${cls}`}>{val}</span> : <NullCell />;
       }
       case 'pack':
-        return val ? <span className="pack-badge">{val}</span> : <span style={{ color: 'var(--text-light)' }}>—</span>;
-      default: return val;
+        return val ? <span className="pack-badge">{val}</span> : <NullCell />;
+      default: return val ?? <NullCell />;
     }
   };
 

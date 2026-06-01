@@ -3,109 +3,90 @@ import { fetchSummary } from './api';
 import { SummaryFilterBar } from './FilterPanel';
 import Pagination from './Pagination';
 import SkeletonRows from './SkeletonRows';
+import NullCell from './NullCell';
 import * as XLSX from 'xlsx';
 
-// S2S columns
+// Fields available from summary API:
+// serviceName, operatorName, operatorId, billerName,
+// activation, renewal, churn, activationPending, pricePoint
+
 const S2S_COLS = [
-  { key: 'date',        label: 'Date' },
-  { key: 'biller',      label: 'Biller' },
-  { key: 'geo',         label: 'G/O/S' },
-  { key: 'clicks',      label: 'Clicks' },
-  { key: 'activation',  label: 'Activations' },
-  { key: 'sentToPub',   label: 'Send to Pub' },
-  { key: 'park',        label: 'Parking' },
-  { key: 'dct',         label: 'Deactivation' },
-  { key: 'sdd',         label: 'SDD' },
-  { key: 'renewal',     label: 'Renewals' },
-  { key: 'parkToAct',   label: 'Parking to Act' },
-  { key: 'campCR',      label: 'Camp CR' },
-  { key: 'pubCR',       label: 'Pub CR' },
-  { key: 'actRev',      label: 'Activation Rev' },
-  { key: 'renewRev',    label: 'Renewal Rev' },
-  { key: 'totalRevUsd', label: 'Total Rev USD' },
+  { key: 'serviceName',        label: 'Service / Product' },
+  { key: 'billerName',         label: 'Biller' },
+  { key: 'operatorName',       label: 'G / O / S' },
+  { key: 'activation',         label: 'Activations' },
+  { key: 'sentToPub',          label: 'Send to Pub' },
+  { key: 'activationPending',  label: 'Parking' },
+  { key: 'churn',              label: 'Deactivation' },
+  { key: 'renewal',            label: 'Renewals' },
+  { key: 'campCR',             label: 'Camp CR' },
+  { key: 'actRev',             label: 'Activation Rev' },
+  { key: 'renewRev',           label: 'Renewal Rev' },
+  { key: 'totalRevUsd',        label: 'Total Rev USD' },
 ];
 
-// API columns
 const API_COLS = [
-  { key: 'date',        label: 'Date' },
-  { key: 'biller',      label: 'Biller' },
-  { key: 'geo',         label: 'G/O/S' },
-  { key: 'sendPin',     label: 'Send Pin' },
-  { key: 'uniqSendPin', label: 'Uniq Pin Send' },
-  { key: 'verPin',      label: 'Ver Pin' },
-  { key: 'uniqVerPin',  label: 'Uniq Ver Pin' },
-  { key: 'sucesVerPin', label: 'Pin Ver Success' },
-  { key: 'activation',  label: 'Activations' },
-  { key: 'sentToPub',   label: 'Send to Pub' },
-  { key: 'park',        label: 'Parking' },
-  { key: 'dct',         label: 'Deactivation' },
-  { key: 'sdd',         label: 'SDD' },
-  { key: 'renewal',     label: 'Renewals' },
-  { key: 'parkToAct',   label: 'Parking to Act' },
-  { key: 'campCR',      label: 'Camp CR' },
-  { key: 'pubCR',       label: 'Pub CR' },
-  { key: 'actRev',      label: 'Activation Rev' },
-  { key: 'renewRev',    label: 'Renewal Rev' },
-  { key: 'totalRevUsd', label: 'Total Rev USD' },
+  { key: 'serviceName',        label: 'Service / Product' },
+  { key: 'billerName',         label: 'Biller' },
+  { key: 'operatorName',       label: 'G / O / S' },
+  { key: 'activation',         label: 'Activations' },
+  { key: 'sentToPub',          label: 'Send to Pub' },
+  { key: 'activationPending',  label: 'Parking' },
+  { key: 'churn',              label: 'Deactivation' },
+  { key: 'renewal',            label: 'Renewals' },
+  { key: 'campCR',             label: 'Camp CR' },
+  { key: 'pubCR',              label: 'Pub CR' },
+  { key: 'actRev',             label: 'Activation Rev' },
+  { key: 'renewRev',           label: 'Renewal Rev' },
+  { key: 'totalRevUsd',        label: 'Total Rev USD' },
 ];
 
-function enrichRow(r, idx) {
-  const seed    = idx + 1;
-  const price   = r.pricePoint || 0;
-  const act     = r.activation || 0;
-  const ren     = r.renewal    || 0;
-  const park    = r.activationPending || 0;
-  const actRev  = act * price;
+// Only compute fields that are mathematically derived from real API values
+function mapRow(r) {
+  const price    = r.pricePoint  || 0;
+  const act      = r.activation  || 0;
+  const ren      = r.renewal     || 0;
+  const actRev   = act * price;
   const renewRev = ren * price;
   const totalRev = actRev + renewRev;
-  const clicks  = act > 0 ? act * (8 + (seed % 12)) : 500 + (seed * 37 % 2000);
-  const sendPin = Math.floor(clicks * 0.45);
-  const dct     = Math.floor(act * 0.04) || 1;
-  const sdd     = Math.floor(act * 0.02) || 0;
-  const sentToPub = Math.floor(totalRev * 0.15);
-  const parkToAct = park > 0 && act > 0 ? ((act / (act + park)) * 100).toFixed(1) : '0.0';
-  const campCR  = clicks > 0 ? ((act / clicks) * 100).toFixed(2) : '0.00';
-  const pubCR   = sendPin > 0 ? ((act / sendPin) * 100).toFixed(2) : '0.00';
+  const total    = act + ren + (r.churn || 0);
+  const campCR   = total > 0 ? ((act / total) * 100).toFixed(2) + '%' : '—';
+  const pubCR    = total > 0 ? ((ren / total) * 100).toFixed(2) + '%' : '—';
 
   return {
-    date:        r.serviceName || '—',
-    biller:      r.billerName  || '—',
-    geo:         r.operatorName ? `${r.operatorName} (${r.operatorId})` : String(r.operatorId || '—'),
-    clicks,
-    activation:  act,
-    sentToPub,
-    park,
-    dct,
-    sdd,
-    renewal:     ren,
-    parkToAct:   `${parkToAct}%`,
-    campCR:      `${campCR}%`,
-    pubCR:       `${pubCR}%`,
-    actRev:      actRev > 0 ? actRev.toLocaleString() : '—',
-    renewRev:    renewRev > 0 ? renewRev.toLocaleString() : '—',
-    totalRevUsd: totalRev > 0 ? (totalRev / 550).toFixed(2) : '—',
-    sendPin,
-    uniqSendPin: Math.floor(sendPin * 0.88),
-    verPin:      Math.floor(sendPin * 0.6),
-    uniqVerPin:  Math.floor(sendPin * 0.54),
-    sucesVerPin: Math.floor(sendPin * 0.45),
+    serviceName:       r.serviceName       || null,
+    billerName:        r.billerName        || null,
+    operatorName:      r.operatorName      ? `${r.operatorName} (${r.operatorId})` : null,
+    activation:        r.activation        ?? null,
+    renewal:           r.renewal           ?? null,
+    churn:             r.churn             ?? null,
+    activationPending: r.activationPending ?? null,
+    sentToPub:         null,
+    campCR:            total > 0 ? ((act / total) * 100).toFixed(2) + '%' : null,
+    pubCR:             total > 0 ? ((ren / total) * 100).toFixed(2) + '%' : null,
+    actRev:      actRev    > 0 ? actRev.toLocaleString()    : null,
+    renewRev:    renewRev  > 0 ? renewRev.toLocaleString()  : null,
+    totalRevUsd: totalRev  > 0 ? (totalRev / 550).toFixed(2) : null,
   };
 }
 
 function CRCell({ v }) {
-  if (!v || v === '—') return <span className="ct-muted">—</span>;
+  if (!v || v === null) return <NullCell />;
   const n = parseFloat(v);
   const cls = n >= 10 ? 'cr-good' : n >= 3 ? 'cr-mid' : 'cr-low';
   return <span className={`cr-badge ${cls}`}>{v}</span>;
 }
 
-function ReportTable({ cols, data, loading, total, page, onPageChange, onExport, title }) {
+function ReportTable({ cols, data, loading, total, page, onPageChange, onExport, title, dateRange }) {
   return (
     <div className="ct-section">
       <div className="ct-header">
         <div className="ct-header-left">
           <div className="ct-header-icon">📋</div>
-          <div><h2>{title}</h2><p>{total} records</p></div>
+          <div>
+            <h2>{title}</h2>
+            <p>{dateRange || 'Apply filters to load data'}</p>
+          </div>
         </div>
         <div className="ct-header-right">
           {!loading && total > 0 && <span className="record-count">{total} records</span>}
@@ -131,17 +112,17 @@ function ReportTable({ cols, data, loading, total, page, onPageChange, onExport,
               <tr key={i}>
                 {cols.map(c => (
                   <td key={c.key} className="ct-td">
-                    {c.key === 'campCR' || c.key === 'pubCR' || c.key === 'parkToAct'
+                    {c.key === 'campCR' || c.key === 'pubCR'
                       ? <CRCell v={row[c.key]} />
                       : c.key === 'actRev' || c.key === 'renewRev' || c.key === 'totalRevUsd'
-                      ? <span className="ct-rev">{row[c.key]}</span>
-                      : c.key === 'biller'
-                      ? <span className="td-primary">{row[c.key]}</span>
-                      : c.key === 'geo'
-                      ? <span className="ct-network">{row[c.key]}</span>
-                      : typeof row[c.key] === 'number'
-                      ? row[c.key].toLocaleString()
-                      : row[c.key] ?? '—'}
+                      ? (row[c.key] != null ? <span className="ct-rev">{row[c.key]}</span> : <NullCell />)
+                      : c.key === 'billerName' || c.key === 'serviceName'
+                      ? (row[c.key] != null ? <span className="td-primary">{row[c.key]}</span> : <NullCell />)
+                      : c.key === 'operatorName'
+                      ? (row[c.key] != null ? <span className="ct-network">{row[c.key]}</span> : <NullCell />)
+                      : row[c.key] != null
+                      ? (typeof row[c.key] === 'number' ? row[c.key].toLocaleString() : row[c.key])
+                      : <NullCell />}
                   </td>
                 ))}
               </tr>
@@ -154,8 +135,9 @@ function ReportTable({ cols, data, loading, total, page, onPageChange, onExport,
   );
 }
 
-function useReportData(filters) {
-  const [allData, setAllData] = useState([]);
+export default function SummaryReports() {
+  const [subTab,  setSubTab]  = useState('s2s');
+  const [filters, setFilters] = useState(null);
   const [data,    setData]    = useState([]);
   const [total,   setTotal]   = useState(0);
   const [page,    setPage]    = useState(1);
@@ -169,30 +151,18 @@ function useReportData(filters) {
     if (!filters) return;
     setLoading(true); setError('');
     fetchSummary({ ...filters, page, size: SIZE })
-      .then(res => {
-        const rows = (res.data || []).map(enrichRow);
-        setAllData(rows); setData(rows); setTotal(res.total || 0);
-      })
+      .then(res => { setData((res.data || []).map(mapRow)); setTotal(res.total || 0); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [filters, page]);
 
-  return { data, allData, total, page, setPage, loading, error };
-}
-
-export default function SummaryReports() {
-  const [subTab,   setSubTab]   = useState('s2s');
-  const [filters,  setFilters]  = useState(null);
-
-  const { data, allData, total, page, setPage, loading, error } = useReportData(filters);
-
   const cols = subTab === 's2s' ? S2S_COLS : API_COLS;
 
   const exportExcel = () => {
-    if (!allData.length) return;
-    const rows = allData.map(r => Object.fromEntries(cols.map(c => [c.label, r[c.key] ?? ''])));
+    if (!data.length) return;
+    const rows = data.map(r => Object.fromEntries(cols.map(c => [c.label, r[c.key] ?? ''])));
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = cols.map(() => ({ wch: 14 }));
+    ws['!cols'] = cols.map(() => ({ wch: 16 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, subTab === 's2s' ? 'S2S Report' : 'API Report');
     XLSX.writeFile(wb, `summary_${subTab}_${filters?.startDate}_${filters?.endDate}.xlsx`);
@@ -201,31 +171,21 @@ export default function SummaryReports() {
   return (
     <div>
       <SummaryFilterBar onApply={setFilters} />
-
       {error && <div className="error-box">⚠️ {error}</div>}
 
-      {/* S2S / API sub-tabs */}
       <div className="sub-tabs-bar">
         <div className="sub-tabs">
-          <button className={`sub-tab ${subTab === 's2s' ? 'active' : ''}`} onClick={() => setSubTab('s2s')}>
-            S2S Report
-          </button>
-          <button className={`sub-tab ${subTab === 'api' ? 'active' : ''}`} onClick={() => setSubTab('api')}>
-            API Report
-          </button>
+          <button className={`sub-tab ${subTab === 's2s' ? 'active' : ''}`} onClick={() => setSubTab('s2s')}>S2S Report</button>
+          <button className={`sub-tab ${subTab === 'api' ? 'active' : ''}`} onClick={() => setSubTab('api')}>API Report</button>
         </div>
         {filters && <span className="table-meta">📅 {filters.startDate} → {filters.endDate}</span>}
       </div>
 
       <ReportTable
-        cols={cols}
-        data={data}
-        loading={loading}
-        total={total}
-        page={page}
-        onPageChange={setPage}
-        onExport={exportExcel}
+        cols={cols} data={data} loading={loading} total={total}
+        page={page} onPageChange={setPage} onExport={exportExcel}
         title={subTab === 's2s' ? 'S2S Summary Report' : 'API Summary Report'}
+        dateRange={filters ? `${filters.startDate} → ${filters.endDate}` : null}
       />
     </div>
   );

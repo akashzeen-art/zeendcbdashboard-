@@ -3,37 +3,44 @@ import { fetchSummary } from './api';
 import { SummaryFilterBar } from './FilterPanel';
 import Pagination from './Pagination';
 import SkeletonRows from './SkeletonRows';
+import NullCell from './NullCell';
 import * as XLSX from 'xlsx';
 
 const COLS = [
-  { key: 'billerName',   label: 'Biller / Aggregator' },
-  { key: 'serviceName',  label: 'Service / Product' },
-  { key: 'operatorName', label: 'Operator' },
-  { key: 'operatorId',   label: 'Operator ID' },
-  { key: 'pricePoint',   label: 'Price Point' },
-  { key: 'pack',         label: 'Pack' },
-  { key: 'activation',   label: 'Activations' },
-  { key: 'renewal',      label: 'Renewals' },
-  { key: 'churn',        label: 'Churn' },
-  { key: 'activationPending', label: 'Pending' },
-  { key: 'actRev',       label: 'Act Revenue' },
-  { key: 'renewRev',     label: 'Renew Revenue' },
-  { key: 'totalRev',     label: 'Total Revenue' },
-  { key: 'totalRevUsd',  label: 'Total Rev USD' },
+  { key: 'billerName',         label: 'Biller / Aggregator' },
+  { key: 'serviceName',        label: 'Service / Product' },
+  { key: 'operatorName',       label: 'Operator' },
+  { key: 'operatorId',         label: 'Operator ID' },
+  { key: 'pricePoint',         label: 'Price Point' },
+  { key: 'activation',         label: 'Activations' },
+  { key: 'renewal',            label: 'Renewals' },
+  { key: 'churn',              label: 'Churn' },
+  { key: 'activationPending',  label: 'Pending (PARK)' },
+  { key: 'actRev',             label: 'Act Revenue' },
+  { key: 'renewRev',           label: 'Renew Revenue' },
+  { key: 'totalRev',           label: 'Total Revenue' },
+  { key: 'totalRevUsd',        label: 'Total Rev USD' },
 ];
 
-function enrichRow(r) {
+function mapRow(r) {
   const price    = r.pricePoint || 0;
   const actRev   = (r.activation || 0) * price;
   const renewRev = (r.renewal    || 0) * price;
   const totalRev = actRev + renewRev;
   return {
-    ...r,
-    pack:        r.pack || '—',
-    actRev:      actRev   > 0 ? actRev.toLocaleString()   : '—',
-    renewRev:    renewRev > 0 ? renewRev.toLocaleString()  : '—',
-    totalRev:    totalRev > 0 ? totalRev.toLocaleString()  : '—',
-    totalRevUsd: totalRev > 0 ? (totalRev / 550).toFixed(2) : '—',
+    billerName:        r.billerName        || null,
+    serviceName:       r.serviceName       || null,
+    operatorName:      r.operatorName      || null,
+    operatorId:        r.operatorId        || null,
+    pricePoint:        r.pricePoint        ?? null,
+    activation:        r.activation        ?? null,
+    renewal:           r.renewal           ?? null,
+    churn:             r.churn             ?? null,
+    activationPending: r.activationPending ?? null,
+    actRev:      actRev    > 0 ? actRev.toLocaleString()    : null,
+    renewRev:    renewRev  > 0 ? renewRev.toLocaleString()  : null,
+    totalRev:    totalRev  > 0 ? totalRev.toLocaleString()  : null,
+    totalRevUsd: totalRev  > 0 ? (totalRev / 550).toFixed(2) : null,
   };
 }
 
@@ -52,7 +59,7 @@ export default function PricePointReport() {
     if (!filters) return;
     setLoading(true); setError('');
     fetchSummary({ ...filters, page, size: SIZE })
-      .then(res => { setData((res.data || []).map(enrichRow)); setTotal(res.total || 0); })
+      .then(res => { setData((res.data || []).map(mapRow)); setTotal(res.total || 0); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [filters, page]);
@@ -77,11 +84,11 @@ export default function PricePointReport() {
             <div className="ct-header-icon">💰</div>
             <div>
               <h2>Pricepoint / Biller Report</h2>
-              <p>Service pricing and revenue by biller & operator</p>
+              <p>{filters ? `${filters.startDate} → ${filters.endDate}` : 'Apply filters to load data'}</p>
             </div>
           </div>
           <div className="ct-header-right">
-            {!loading && <span className="record-count">{total} records</span>}
+            {!loading && total > 0 && <span className="record-count">{total} records</span>}
             {!loading && data.length > 0 && <button className="ct-export-btn" onClick={exportExcel}>⬇ Export Excel</button>}
           </div>
         </div>
@@ -105,14 +112,17 @@ export default function PricePointReport() {
                 <tr key={i}>
                   {COLS.map(c => (
                     <td key={c.key} className="ct-td">
-                      {c.key === 'billerName'  ? <span className="td-primary">{row[c.key] || '—'}</span>
-                      : c.key === 'serviceName' ? <span className="td-primary">{row[c.key] || '—'}</span>
-                      : c.key === 'operatorName'? <span className="ct-network">{row[c.key] || '—'}</span>
-                      : c.key === 'pricePoint'  ? <span className="ct-rev">{Number(row[c.key] || 0).toLocaleString()}</span>
-                      : c.key === 'actRev' || c.key === 'renewRev' || c.key === 'totalRev' || c.key === 'totalRevUsd'
-                        ? <span className="ct-rev">{row[c.key]}</span>
-                      : typeof row[c.key] === 'number' ? row[c.key].toLocaleString()
-                      : row[c.key] ?? '—'}
+                      {c.key === 'billerName' || c.key === 'serviceName'
+                        ? (row[c.key] != null ? <span className="td-primary">{row[c.key]}</span> : <NullCell />)
+                        : c.key === 'operatorName'
+                        ? (row[c.key] != null ? <span className="ct-network">{row[c.key]}</span> : <NullCell />)
+                        : c.key === 'pricePoint'
+                        ? (row[c.key] != null ? <span className="ct-rev">{Number(row[c.key]).toLocaleString()}</span> : <NullCell />)
+                        : c.key === 'actRev' || c.key === 'renewRev' || c.key === 'totalRev' || c.key === 'totalRevUsd'
+                        ? (row[c.key] != null ? <span className="ct-rev">{row[c.key]}</span> : <NullCell />)
+                        : row[c.key] != null
+                        ? (typeof row[c.key] === 'number' ? row[c.key].toLocaleString() : row[c.key])
+                        : <NullCell />}
                     </td>
                   ))}
                 </tr>

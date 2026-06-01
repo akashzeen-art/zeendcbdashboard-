@@ -3,29 +3,34 @@ import { fetchSummary } from './api';
 import { PublisherFilterBar } from './FilterPanel';
 import Pagination from './Pagination';
 import SkeletonRows from './SkeletonRows';
+import NullCell from './NullCell';
 import * as XLSX from 'xlsx';
 
 const COLS = [
-  { key: 'date',       label: 'Date' },
-  { key: 'publisher',  label: 'Publisher' },
-  { key: 'geo',        label: 'G / O / S' },
-  { key: 'sentToPub',  label: 'Send to Pub' },
-  { key: 'costUsd',    label: 'Cost in USD' },
+  { key: 'billerName',   label: 'Publisher / Biller' },
+  { key: 'serviceName',  label: 'Service / Product' },
+  { key: 'operatorName', label: 'G / O / S' },
+  { key: 'operatorId',   label: 'Operator ID' },
+  { key: 'activation',   label: 'Activations' },
+  { key: 'renewal',      label: 'Renewals' },
+  { key: 'totalRev',     label: 'Total Revenue' },
+  { key: 'totalRevUsd',  label: 'Cost in USD' },
 ];
 
-function enrichRow(r, idx) {
+function mapRow(r) {
   const price    = r.pricePoint || 0;
-  const act      = r.activation || 0;
-  const ren      = r.renewal    || 0;
-  const totalRev = (act + ren) * price;
-  const sentToPub = Math.floor(totalRev * 0.15);
-  const costUsd   = sentToPub > 0 ? (sentToPub / 550).toFixed(2) : '0.00';
+  const actRev   = (r.activation || 0) * price;
+  const renewRev = (r.renewal    || 0) * price;
+  const totalRev = actRev + renewRev;
   return {
-    date:      r.serviceName || '—',
-    publisher: r.billerName  || '—',
-    geo:       r.operatorName ? `${r.operatorName} (${r.operatorId})` : String(r.operatorId || '—'),
-    sentToPub: sentToPub > 0 ? sentToPub.toLocaleString() : '—',
-    costUsd,
+    billerName:   r.billerName   || null,
+    serviceName:  r.serviceName  || null,
+    operatorName: r.operatorName || null,
+    operatorId:   r.operatorId   || null,
+    activation:   r.activation   ?? null,
+    renewal:      r.renewal      ?? null,
+    totalRev:     totalRev > 0 ? totalRev.toLocaleString()    : null,
+    totalRevUsd:  totalRev > 0 ? (totalRev / 550).toFixed(2)  : null,
   };
 }
 
@@ -44,7 +49,7 @@ export default function PublisherReport() {
     if (!filters) return;
     setLoading(true); setError('');
     fetchSummary({ ...filters, page, size: SIZE })
-      .then(res => { setData((res.data || []).map(enrichRow)); setTotal(res.total || 0); })
+      .then(res => { setData((res.data || []).map(mapRow)); setTotal(res.total || 0); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [filters, page]);
@@ -69,11 +74,11 @@ export default function PublisherReport() {
             <div className="ct-header-icon">📢</div>
             <div>
               <h2>Publisher Report</h2>
-              <p>Publisher-level send & cost breakdown</p>
+              <p>{filters ? `${filters.startDate} → ${filters.endDate}` : 'Apply filters to load data'}</p>
             </div>
           </div>
           <div className="ct-header-right">
-            {!loading && <span className="record-count">{total} records</span>}
+            {!loading && total > 0 && <span className="record-count">{total} records</span>}
             {!loading && data.length > 0 && <button className="ct-export-btn" onClick={exportExcel}>⬇ Export Excel</button>}
           </div>
         </div>
@@ -97,10 +102,15 @@ export default function PublisherReport() {
                 <tr key={i}>
                   {COLS.map(c => (
                     <td key={c.key} className="ct-td">
-                      {c.key === 'publisher' ? <span className="td-primary">{row[c.key]}</span>
-                      : c.key === 'geo'       ? <span className="ct-network">{row[c.key]}</span>
-                      : c.key === 'costUsd'   ? <span className="ct-rev">{row[c.key]}</span>
-                      : row[c.key] ?? '—'}
+                      {c.key === 'billerName' || c.key === 'serviceName'
+                        ? (row[c.key] != null ? <span className="td-primary">{row[c.key]}</span> : <NullCell />)
+                        : c.key === 'operatorName'
+                        ? (row[c.key] != null ? <span className="ct-network">{row[c.key]}</span> : <NullCell />)
+                        : c.key === 'totalRev' || c.key === 'totalRevUsd'
+                        ? (row[c.key] != null ? <span className="ct-rev">{row[c.key]}</span> : <NullCell />)
+                        : row[c.key] != null
+                        ? (typeof row[c.key] === 'number' ? row[c.key].toLocaleString() : row[c.key])
+                        : <NullCell />}
                     </td>
                   ))}
                 </tr>
