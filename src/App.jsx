@@ -1,14 +1,24 @@
 import { useState, useCallback } from 'react';
 import Login from './Login';
-import FilterBar from './FilterBar';
-import CombinedTable from './CombinedTable';
-import SummaryDetailsTable from './SummaryDetailsTable';
+import SummaryReports from './SummaryReports';
+import HourlyReport from './HourlyReport';
+import PricePointReport from './PricePointReport';
+import PublisherReport from './PublisherReport';
+import Cutback from './Cutback';
 import './App.css';
 import './Login.css';
 
 const today    = new Date().toISOString().split('T')[0];
 const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
-const DEFAULT_FILTERS = { startDate: monthAgo, endDate: today, serviceName: '', operatorId: '', billerName: '' };
+const DEFAULT_FILTERS = { startDate: monthAgo, endDate: today, billerName: '', operatorId: '', serviceName: '', adnetwork: '' };
+
+const TABS = [
+  { id: 'summary',   label: 'Summary & Reports',      icon: '📋' },
+  { id: 'hourly',    label: 'Reports Hourly',          icon: '⏱️' },
+  { id: 'pricepoint',label: 'Pricepoint/Biller Report',icon: '💰' },
+  { id: 'publisher', label: 'Publisher Report',        icon: '📢' },
+  { id: 'cutback',   label: 'Cutback',                 icon: '✂️' },
+];
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -20,21 +30,10 @@ export default function App() {
     } catch { return null; }
   });
 
-  const [filters,      setFilters]      = useState(DEFAULT_FILTERS);
-  const [activeTab,    setActiveTab]    = useState('combined');
-  const [combinedTotal, setCombinedTotal] = useState(0);
-  const [detailsTotal,  setDetailsTotal]  = useState(0);
+  const [activeTab, setActiveTab] = useState('summary');
+  const [filters,   setFilters]   = useState(DEFAULT_FILTERS);
 
-  const handleApply = useCallback((f) => {
-    // Map FilterBar fields to API params
-    setFilters({
-      startDate:   f.startDate,
-      endDate:     f.endDate,
-      billerName:  f.billerName  || '',
-      operatorId:  f.operatorId  || '',
-      serviceName: f.serviceName || '',
-    });
-  }, []);
+  const handleApply = useCallback((f) => setFilters(f), []);
 
   const handleLogin = (u) => {
     const val = JSON.stringify(u);
@@ -77,34 +76,26 @@ export default function App() {
       </header>
 
       <main className="app-main">
-        <FilterBar onApply={handleApply} />
-
-        <div className="tabs-bar">
-          <div className="tabs">
+        {/* Main tab navigation */}
+        <div className="main-tabs">
+          {TABS.map(t => (
             <button
-              className={activeTab === 'combined' ? 'tab active' : 'tab'}
-              onClick={() => setActiveTab('combined')}
+              key={t.id}
+              className={`main-tab ${activeTab === t.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(t.id)}
             >
-              📋 Summary &amp; Analytics
-              <span className="tab-count">{combinedTotal}</span>
+              <span className="main-tab-icon">{t.icon}</span>
+              {t.label}
             </button>
-            <button
-              className={activeTab === 'details' ? 'tab active' : 'tab'}
-              onClick={() => setActiveTab('details')}
-            >
-              🧾 Transaction Details
-              <span className="tab-count">{detailsTotal}</span>
-            </button>
-          </div>
-          <div className="table-meta">📅 {filters.startDate} → {filters.endDate}</div>
+          ))}
         </div>
 
-        {activeTab === 'combined' && (
-          <CombinedTable filters={filters} onTotalChange={setCombinedTotal} />
-        )}
-        {activeTab === 'details' && (
-          <SummaryDetailsTable filters={filters} onTotalChange={setDetailsTotal} />
-        )}
+        {/* Tab content — each manages its own filters */}
+        {activeTab === 'summary'    && <SummaryReports />}
+        {activeTab === 'hourly'     && <HourlyReport filters={filters} onCountChange={() => {}} />}
+        {activeTab === 'pricepoint' && <PricePointReport />}
+        {activeTab === 'publisher'  && <PublisherReport />}
+        {activeTab === 'cutback'    && <Cutback />}
       </main>
     </div>
   );

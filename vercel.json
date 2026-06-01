@@ -3,6 +3,18 @@
     {
       "source": "/vaspay/:path*",
       "destination": "https://wap.zeendcb.com/vaspay/:path*"
+    },
+    {
+      "source": "/postbacks/:path*",
+      "destination": "https://postback.v1mobi.com/postbacks/:path*"
+    },
+    {
+      "source": "/optimize/:path*",
+      "destination": "https://postback.v1mobi.com/optimize/:path*"
+    },
+    {
+      "source": "/optimize",
+      "destination": "https://postback.v1mobi.com/optimize"
     }
   ]
 }

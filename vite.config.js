@@ -10,6 +10,16 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
       },
+      '/postbacks': {
+        target: 'https://postback.v1mobi.com',
+        changeOrigin: true,
+        secure: true,
+      },
+      '/optimize': {
+        target: 'https://postback.v1mobi.com',
+        changeOrigin: true,
+        secure: true,
+      },
     },
   },
 });
