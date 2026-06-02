@@ -1,20 +1,17 @@
 import { useState, useEffect } from 'react';
-import { fetchSummary } from './api';
+import { fetchSummary, fetchHourlyReport } from './api';
 import { SummaryFilterBar } from './FilterPanel';
 import Pagination from './Pagination';
 import SkeletonRows from './SkeletonRows';
 import NullCell from './NullCell';
 import * as XLSX from 'xlsx';
 
-// Fields available from summary API:
-// serviceName, operatorName, operatorId, billerName,
-// activation, renewal, churn, activationPending, pricePoint
-
 const S2S_COLS = [
   { key: 'serviceName',        label: 'Service / Product' },
   { key: 'billerName',         label: 'Biller' },
   { key: 'operatorName',       label: 'G / O / S' },
   { key: 'activation',         label: 'Activations' },
+  { key: 'stp',                label: 'STP (Send to Partner)' },
   { key: 'activationPending',  label: 'Parking' },
   { key: 'churn',              label: 'Deactivation' },
   { key: 'renewal',            label: 'Renewals' },
@@ -29,6 +26,7 @@ const API_COLS = [
   { key: 'billerName',         label: 'Biller' },
   { key: 'operatorName',       label: 'G / O / S' },
   { key: 'activation',         label: 'Activations' },
+  { key: 'stp',                label: 'STP (Send to Partner)' },
   { key: 'activationPending',  label: 'Parking' },
   { key: 'churn',              label: 'Deactivation' },
   { key: 'renewal',            label: 'Renewals' },
@@ -39,17 +37,29 @@ const API_COLS = [
   { key: 'totalRevUsd',        label: 'Total Rev USD' },
 ];
 
-// Only compute fields that are mathematically derived from real API values
-function mapRow(r) {
-  const price    = r.pricePoint  || 0;
-  const act      = r.activation  || 0;
-  const ren      = r.renewal     || 0;
+// Build STP lookup: { [productname_lowercase]: totalStp }
+function buildStpMap(hourlyData) {
+  const map = {};
+  (hourlyData || []).forEach(campaign => {
+    const key = (campaign.productname || '').toLowerCase().trim();
+    const total = (campaign.hourlyData || []).reduce((sum, h) => sum + (h.stp || 0), 0);
+    map[key] = (map[key] || 0) + total;
+  });
+  return map;
+}
+
+function mapRow(r, stpMap) {
+  const price    = r.pricePoint || 0;
+  const act      = r.activation || 0;
+  const ren      = r.renewal    || 0;
   const actRev   = act * price;
   const renewRev = ren * price;
   const totalRev = actRev + renewRev;
   const total    = act + ren + (r.churn || 0);
-  const campCR   = total > 0 ? ((act / total) * 100).toFixed(2) + '%' : '—';
-  const pubCR    = total > 0 ? ((ren / total) * 100).toFixed(2) + '%' : '—';
+
+  // Match STP by serviceName (case-insensitive)
+  const stpKey = (r.serviceName || '').toLowerCase().trim();
+  const stp    = stpMap[stpKey] ?? null;
 
   return {
     serviceName:       r.serviceName       || null,
@@ -59,8 +69,9 @@ function mapRow(r) {
     renewal:           r.renewal           ?? null,
     churn:             r.churn             ?? null,
     activationPending: r.activationPending ?? null,
-    campCR:            total > 0 ? ((act / total) * 100).toFixed(2) + '%' : null,
-    pubCR:             total > 0 ? ((ren / total) * 100).toFixed(2) + '%' : null,
+    stp,
+    campCR:      total > 0 ? ((act / total) * 100).toFixed(2) + '%' : null,
+    pubCR:       total > 0 ? ((ren / total) * 100).toFixed(2) + '%' : null,
     actRev:      actRev    > 0 ? actRev.toLocaleString()    : null,
     renewRev:    renewRev  > 0 ? renewRev.toLocaleString()  : null,
     totalRevUsd: totalRev  > 0 ? (totalRev / 550).toFixed(2) : null,
@@ -68,7 +79,7 @@ function mapRow(r) {
 }
 
 function CRCell({ v }) {
-  if (!v || v === null) return <NullCell />;
+  if (v === null || v === undefined) return <NullCell />;
   const n = parseFloat(v);
   const cls = n >= 10 ? 'cr-good' : n >= 3 ? 'cr-mid' : 'cr-low';
   return <span className={`cr-badge ${cls}`}>{v}</span>;
@@ -113,6 +124,8 @@ function ReportTable({ cols, data, loading, total, page, onPageChange, onExport,
                       ? <CRCell v={row[c.key]} />
                       : c.key === 'actRev' || c.key === 'renewRev' || c.key === 'totalRevUsd'
                       ? (row[c.key] != null ? <span className="ct-rev">{row[c.key]}</span> : <NullCell />)
+                      : c.key === 'stp'
+                      ? (row[c.key] != null ? <span className="stp-badge">{Number(row[c.key]).toLocaleString()}</span> : <NullCell />)
                       : c.key === 'billerName' || c.key === 'serviceName'
                       ? (row[c.key] != null ? <span className="td-primary">{row[c.key]}</span> : <NullCell />)
                       : c.key === 'operatorName'
@@ -147,8 +160,17 @@ export default function SummaryReports() {
   useEffect(() => {
     if (!filters) return;
     setLoading(true); setError('');
-    fetchSummary({ ...filters, page, size: SIZE })
-      .then(res => { setData((res.data || []).map(mapRow)); setTotal(res.total || 0); })
+
+    // Fetch summary + hourly in parallel to get STP
+    Promise.all([
+      fetchSummary({ ...filters, page, size: SIZE }),
+      fetchHourlyReport(filters.startDate, filters.endDate).catch(() => []),
+    ])
+      .then(([summaryRes, hourlyData]) => {
+        const stpMap = buildStpMap(hourlyData);
+        setData((summaryRes.data || []).map(r => mapRow(r, stpMap)));
+        setTotal(summaryRes.total || 0);
+      })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [filters, page]);

@@ -1650,3 +1650,14 @@ tbody tr:hover .ct-td-dummy { background: #f1f5f9 !important; }
   letter-spacing: .5px;
   user-select: none;
 }
+
+/* STP badge */
+.stp-badge {
+  display: inline-block;
+  padding: .18rem .6rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 4px;
+  font-size: .75rem;
+  font-weight: 700;
+}

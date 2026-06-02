@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { format, subDays, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { fetchFilterOptions, fetchSummaryDetails } from './api';
 import DateRangePicker from './DateRangePicker';
 
 const today    = new Date().toISOString().split('T')[0];
-const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+
+const todayRange = { s: startOfDay(new Date()), e: endOfDay(new Date()) };
 
 // Dropdown — real options normal, dummy options greyed out
 export function Dropdown({ label, value, options, onChange, placeholder = 'All', loading = false }) {
@@ -108,8 +109,8 @@ export function SummaryFilterBar({ onApply }) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const { billers, operators, services, adNetworks, loading, cascade } = useFilterOptions();
-  const [dateRange, setDateRange] = useState({ s: startOfDay(subDays(new Date(),30)), e: endOfDay(new Date()) });
-  const [f, setF] = useState({ startDate: monthAgo, endDate: today, billerName: '', operatorId: '', serviceName: '', adnetwork: '' });
+  const [dateRange, setDateRange] = useState(todayRange);
+  const [f, setF] = useState({ startDate: today, endDate: today, billerName: '', operatorId: '', serviceName: '', adnetwork: '' });
 
   const set = (k) => (v) => {
     setF(p => ({ ...p, [k]: v }));
@@ -128,9 +129,8 @@ export function SummaryFilterBar({ onApply }) {
   };
 
   const handleReset = () => {
-    const r = { s: startOfDay(subDays(new Date(),30)), e: endOfDay(new Date()) };
-    setDateRange(r);
-    const reset = { startDate: monthAgo, endDate: today, billerName: '', operatorId: '', serviceName: '', adnetwork: '' };
+    setDateRange(todayRange);
+    const reset = { startDate: today, endDate: today, billerName: '', operatorId: '', serviceName: '', adnetwork: '' };
     setF(reset); onApply(reset);
   };
 
@@ -207,8 +207,8 @@ export function HourlyFilterBar({ onApply }) {
 export function PublisherFilterBar({ onApply }) {
   const [panelOpen, setPanelOpen] = useState(true);
   const { operators, services, loading } = useFilterOptions();
-  const [dateRange, setDateRange] = useState({ s: startOfDay(subDays(new Date(),30)), e: endOfDay(new Date()) });
-  const [f, setF] = useState({ startDate: monthAgo, endDate: today, operatorId: '', serviceName: '' });
+  const [dateRange, setDateRange] = useState(todayRange);
+  const [f, setF] = useState({ startDate: today, endDate: today, operatorId: '', serviceName: '' });
 
   const set = (k) => (v) => setF(p => ({ ...p, [k]: v }));
   const handleDate = (r) => {
@@ -233,7 +233,7 @@ export function PublisherFilterBar({ onApply }) {
             <Dropdown label="Service / Product" value={f.serviceName} options={services} onChange={set('serviceName')} placeholder="All Services" loading={loading} />
             <div className="filter-actions">
               <button type="submit" className="btn-apply">🔍 Apply</button>
-              <button type="button" className="btn-reset" onClick={() => { const r={startDate:monthAgo,endDate:today,operatorId:'',serviceName:''}; setF(r); onApply(r); }}>↺ Reset</button>
+              <button type="button" className="btn-reset" onClick={() => { setF({ startDate: today, endDate: today, operatorId: '', serviceName: '' }); onApply({ startDate: today, endDate: today, operatorId: '', serviceName: '' }); }}>↺ Reset</button>
             </div>
           </div>
         </form>
