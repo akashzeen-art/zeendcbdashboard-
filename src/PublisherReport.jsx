@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchSummary } from './api';
 import { PublisherFilterBar } from './FilterPanel';
 import Pagination from './Pagination';
@@ -35,7 +35,8 @@ function mapRow(r) {
 }
 
 export default function PublisherReport() {
-  const [filters, setFilters] = useState(null);
+  const today = new Date().toISOString().split('T')[0];
+  const [filters, setFilters] = useState({ startDate: today, endDate: today, operatorId: '', serviceName: '' });
   const [data,    setData]    = useState([]);
   const [total,   setTotal]   = useState(0);
   const [page,    setPage]    = useState(1);
@@ -43,16 +44,18 @@ export default function PublisherReport() {
   const [error,   setError]   = useState('');
   const SIZE = 15;
 
-  useEffect(() => { setPage(1); }, [filters]);
-
-  useEffect(() => {
-    if (!filters) return;
+  const loadData = useCallback((f, p) => {
     setLoading(true); setError('');
-    fetchSummary({ ...filters, page, size: SIZE })
+    fetchSummary({ ...f, page: p, size: SIZE })
       .then(res => { setData((res.data || []).map(mapRow)); setTotal(res.total || 0); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, [filters, page]);
+  }, []);
+
+  useEffect(() => { loadData(filters, 1); }, []); // eslint-disable-line
+
+  const handleApply = (f) => { setFilters(f); setPage(1); setData([]); loadData(f, 1); };
+  const handlePageChange = (p) => { setPage(p); loadData(filters, p); };
 
   const exportExcel = () => {
     const rows = data.map(r => Object.fromEntries(COLS.map(c => [c.label, r[c.key] ?? ''])));
@@ -65,7 +68,7 @@ export default function PublisherReport() {
 
   return (
     <div>
-      <PublisherFilterBar onApply={setFilters} />
+      <PublisherFilterBar onApply={handleApply} />
       {error && <div className="error-box">⚠️ {error}</div>}
 
       <div className="ct-section">
@@ -74,7 +77,7 @@ export default function PublisherReport() {
             <div className="ct-header-icon">📢</div>
             <div>
               <h2>Publisher Report</h2>
-              <p>{filters ? `${filters.startDate} → ${filters.endDate}` : 'Apply filters to load data'}</p>
+              <p>{filters ? `${filters.startDate}${filters.endDate !== filters.startDate ? ` → ${filters.endDate}` : ''}` : ''}</p>
             </div>
           </div>
           <div className="ct-header-right">
@@ -95,7 +98,7 @@ export default function PublisherReport() {
                   <div className="no-data-inner">
                     <div className="no-data-icon">📭</div>
                     <div className="no-data-text">No data found</div>
-                    <div className="no-data-sub">Apply filters to load data</div>
+                    <div className="no-data-sub">No records for the selected date range</div>
                   </div>
                 </td></tr>
               ) : data.map((row, i) => (
@@ -118,7 +121,7 @@ export default function PublisherReport() {
             </tbody>
           </table>
         </div>
-        <Pagination page={page} total={total} size={SIZE} onChange={setPage} />
+        <Pagination page={page} total={total} size={SIZE} onChange={handlePageChange} />
       </div>
     </div>
   );

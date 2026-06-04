@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { format, startOfDay, endOfDay } from 'date-fns';
-import { fetchFilterOptions, fetchSummaryDetails } from './api';
+import { fetchFilterOptions } from './api';
 import DateRangePicker from './DateRangePicker';
 
-const today    = new Date().toISOString().split('T')[0];
-
+const today = new Date().toISOString().split('T')[0];
 const todayRange = { s: startOfDay(new Date()), e: endOfDay(new Date()) };
+
 
 // Dropdown — real options normal, dummy options greyed out
 export function Dropdown({ label, value, options, onChange, placeholder = 'All', loading = false }) {
@@ -69,21 +69,16 @@ export function useFilterOptions() {
     const end   = new Date().toISOString().split('T')[0];
     const start = new Date(Date.now() - 180 * 86400000).toISOString().split('T')[0];
 
-    Promise.all([
-      fetchFilterOptions(),
-      fetchSummaryDetails({ startDate: start, endDate: end, page: 1, size: 500 }),
-    ])
-      .then(([summaryRes, detailsRes]) => {
+    fetchFilterOptions()
+      .then(summaryRes => {
         const rows = summaryRes.data || [];
         setAllRows(rows);
         setBillers([...new Set(rows.map(r => r.billerName).filter(Boolean))].sort());
         setOperators(buildOps(rows));
         setServices([...new Set(rows.map(r => r.serviceName).filter(Boolean))].sort());
-
-        // Ad Networks from requestMode field in details API
-        const detailRows = detailsRes.data || [];
-        const nets = [...new Set(detailRows.map(r => r.requestMode).filter(Boolean))].sort();
-        setAdNetworks(nets.map(n => ({ value: n, label: n, demo: false })));
+        // Ad Networks = unique billerName values (aggregators/networks)
+        const nets = [...new Set(rows.map(r => r.billerName).filter(Boolean))].sort();
+        setAdNetworks(nets.map(n => ({ value: n, label: n })));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -96,9 +91,13 @@ export function useFilterOptions() {
     ])).values()];
   }
 
-  function cascade(billerName) {
-    const filtered = billerName ? allRows.filter(r => r.billerName === billerName) : allRows;
-    setOperators(buildOps(filtered));
+  function cascade(billerName, operatorId) {
+    const filtered = allRows.filter(r => {
+      if (billerName && r.billerName !== billerName) return false;
+      if (operatorId && String(r.operatorId) !== operatorId) return false;
+      return true;
+    });
+    setOperators(buildOps(billerName ? allRows.filter(r => r.billerName === billerName) : allRows));
     setServices([...new Set(filtered.map(r => r.serviceName).filter(Boolean))].sort());
   }
 
@@ -113,8 +112,12 @@ export function SummaryFilterBar({ onApply }) {
   const [f, setF] = useState({ startDate: today, endDate: today, billerName: '', operatorId: '', serviceName: '', adnetwork: '' });
 
   const set = (k) => (v) => {
-    setF(p => ({ ...p, [k]: v }));
-    if (k === 'billerName') cascade(v);
+    setF(p => {
+      const next = { ...p, [k]: v };
+      if (k === 'billerName') { next.operatorId = ''; next.serviceName = ''; cascade(v, ''); }
+      if (k === 'operatorId') { next.serviceName = ''; cascade(p.billerName, v); }
+      return next;
+    });
   };
 
   const handleDate = (r) => {
@@ -123,15 +126,18 @@ export function SummaryFilterBar({ onApply }) {
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault(); setSubmitting(true);
+    e.preventDefault();
+    setSubmitting(true);
     onApply({ ...f });
     setTimeout(() => setSubmitting(false), 500);
   };
 
   const handleReset = () => {
     setDateRange(todayRange);
+    cascade('', '');
     const reset = { startDate: today, endDate: today, billerName: '', operatorId: '', serviceName: '', adnetwork: '' };
-    setF(reset); onApply(reset);
+    setF(reset);
+    onApply(reset);
   };
 
   return (

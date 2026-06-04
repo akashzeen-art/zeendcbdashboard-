@@ -15,7 +15,12 @@ function getCR(clicks, conversions) {
 
 function buildHourMap(hourlyData) {
   const map = {};
-  (hourlyData || []).forEach(h => { map[h.hour] = h; });
+  (hourlyData || []).forEach(h => {
+    if (!map[h.hour]) map[h.hour] = { hour: h.hour, clicks: 0, conversions: 0, stp: 0 };
+    map[h.hour].clicks      += h.clicks      || 0;
+    map[h.hour].conversions += h.conversions || 0;
+    map[h.hour].stp         += h.stp         || 0;
+  });
   return map;
 }
 
@@ -25,6 +30,21 @@ function computeTotals(hourlyData) {
     conversions: acc.conversions + (h.conversions || 0),
     stp:         acc.stp         + (h.stp         || 0),
   }), { clicks: 0, conversions: 0, stp: 0 });
+}
+
+// Group by campaignId, keep per-date entries separate
+function groupCampaigns(campaigns) {
+  const map = new Map();
+  campaigns.forEach(c => {
+    if (!map.has(c.campaignId)) {
+      map.set(c.campaignId, { ...c, dates: [{ date: c.date, hourlyData: c.hourlyData || [] }] });
+    } else {
+      map.get(c.campaignId).dates.push({ date: c.date, hourlyData: c.hourlyData || [] });
+    }
+  });
+  // sort dates ascending
+  map.forEach(c => c.dates.sort((a, b) => a.date.localeCompare(b.date)));
+  return Array.from(map.values());
 }
 
 function CRBadge({ value }) {
@@ -90,80 +110,128 @@ function CutEditor({ campaign }) {
   );
 }
 
-// ── Campaign Card ─────────────────────────────────────────────
-function CampaignCard({ campaign, index }) {
-  const [expanded, setExpanded] = useState(false);
-  const hourMap = buildHourMap(campaign.hourlyData);
-  const totals  = computeTotals(campaign.hourlyData);
+// ── Hourly Table for one date ────────────────────────────────
+function HourlyTable({ hourlyData }) {
+  const hourMap = buildHourMap(hourlyData);
+  const totals  = computeTotals(hourlyData);
   const totalCR = getCR(totals.clicks, totals.conversions);
   const val = (slot, key) => hourMap[slot.match]?.[key] || 0;
+  return (
+    <table className="hr-table hr-table-h">
+      <thead>
+        <tr>
+          <th className="hr-th-metric">Metric</th>
+          {ALL_HOURS.map(h => (
+            <th key={h.slot} className={`hr-th-hour ${hourMap[h.match] ? 'hr-th-has-data' : ''}`}>{h.slot}</th>
+          ))}
+          <th className="hr-th-total">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {[['Clicks','clicks'],['Conversions','conversions'],['STP','stp']].map(([label, key]) => (
+          <tr key={key}>
+            <td className="hr-metric-label">{label}</td>
+            {ALL_HOURS.map(h => {
+              const v = val(h, key);
+              return (
+                <td key={h.slot} className={`hr-cell ${!hourMap[h.match] ? 'hr-cell-empty' : ''}`}>
+                  {v > 0
+                    ? <span className={key === 'conversions' ? 'hr-conv-badge' : key === 'stp' ? 'hr-stp-badge' : 'hr-clicks-val'}>{v.toLocaleString()}</span>
+                    : <span className="hr-zero">—</span>}
+                </td>
+              );
+            })}
+            <td className="hr-cell hr-total-cell">
+              <strong className={key === 'conversions' ? 'hr-conv' : ''}>{totals[key].toLocaleString()}</strong>
+            </td>
+          </tr>
+        ))}
+        <tr>
+          <td className="hr-metric-label">CR %</td>
+          {ALL_HOURS.map(h => {
+            const hasData = !!hourMap[h.match];
+            return (
+              <td key={h.slot} className={`hr-cell ${!hasData ? 'hr-cell-empty' : ''}`}>
+                {hasData ? <CRBadge value={getCR(val(h,'clicks'), val(h,'conversions'))} /> : <span className="hr-zero">—</span>}
+              </td>
+            );
+          })}
+          <td className="hr-cell hr-total-cell"><CRBadge value={totalCR} /></td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
+// ── Campaign Card ─────────────────────────────────────────────
+function CampaignCard({ campaign, index }) {
+  const [expanded,    setExpanded]    = useState(false);
+  const [activeDate,  setActiveDate]  = useState(null);
+
+  // all hourly data across dates for grand totals
+  const allHourlyData = campaign.dates.flatMap(d => d.hourlyData);
+  const grandTotals   = computeTotals(allHourlyData);
+  const grandCR       = getCR(grandTotals.clicks, grandTotals.conversions);
+  const multiDate     = campaign.dates.length > 1;
+
+  // active date entry (null = show all aggregated)
+  const activeDateEntry = activeDate
+    ? campaign.dates.find(d => d.date === activeDate)
+    : null;
+
+  const handleExpand = () => {
+    setExpanded(e => !e);
+    if (!activeDate && campaign.dates.length > 0) setActiveDate(campaign.dates[0].date);
+  };
 
   const exportExcel = (e) => {
     e.stopPropagation();
-    const header = ['Metric', ...ALL_HOURS.map(h => h.slot), 'Total'];
-    const rows = [
-      ['Clicks',      ...ALL_HOURS.map(h => val(h,'clicks')),      totals.clicks],
-      ['Conversions', ...ALL_HOURS.map(h => val(h,'conversions')), totals.conversions],
-      ['STP',         ...ALL_HOURS.map(h => val(h,'stp')),         totals.stp],
-      ['CR %',        ...ALL_HOURS.map(h => getCR(val(h,'clicks'), val(h,'conversions'))), totalCR],
-    ];
-    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
-    ws['!cols'] = header.map(() => ({ wch: 9 }));
-    ws['!cols'][0] = { wch: 14 };
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, `C${campaign.campaignId}`);
-    XLSX.writeFile(wb, `hourly_${campaign.campaignId}_${campaign.date}.xlsx`);
+    // sheet per date + one totals sheet
+    campaign.dates.forEach(({ date, hourlyData }) => {
+      const hm = buildHourMap(hourlyData);
+      const tot = computeTotals(hourlyData);
+      const v = (slot, key) => hm[slot.match]?.[key] || 0;
+      const header = ['Metric', ...ALL_HOURS.map(h => h.slot), 'Total'];
+      const rows = [
+        ['Clicks',      ...ALL_HOURS.map(h => v(h,'clicks')),      tot.clicks],
+        ['Conversions', ...ALL_HOURS.map(h => v(h,'conversions')), tot.conversions],
+        ['STP',         ...ALL_HOURS.map(h => v(h,'stp')),         tot.stp],
+        ['CR %',        ...ALL_HOURS.map(h => getCR(v(h,'clicks'), v(h,'conversions'))), getCR(tot.clicks, tot.conversions)],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+      ws['!cols'] = [{ wch: 14 }, ...ALL_HOURS.map(() => ({ wch: 9 })), { wch: 9 }];
+      XLSX.utils.book_append_sheet(wb, ws, date.slice(5)); // e.g. "06-01"
+    });
+    XLSX.writeFile(wb, `hourly_${campaign.campaignId}_${campaign.dates[0].date}.xlsx`);
   };
 
   return (
     <div className="hr-card">
-      <div className="hr-card-header" onClick={() => setExpanded(e => !e)}>
-        {/* Left: campaign info */}
+      <div className="hr-card-header" onClick={handleExpand}>
         <div className="hr-card-left">
           <div className="hr-card-index">{index + 1}</div>
           <div className="hr-card-info">
             <div className="hr-card-title">
-              <span className="hr-campaign-id">Campaign #{campaign.campaignId}</span>
-              <span className="hr-product">{campaign.productname}</span>
+              <span className="hr-campaign-id">{campaign.productname}</span>
+              <span className="hr-dsp" style={{background:'#f1f5f9',color:'#64748b'}}>#{campaign.campaignId}</span>
               <span className="hr-dsp">{campaign.dspName}</span>
             </div>
             <div className="hr-card-meta">
-              <span>📅 {campaign.date}</span>
-              <span>
-                🔗{' '}
-                <a href={campaign.links} target="_blank" rel="noreferrer"
-                  onClick={e => e.stopPropagation()} className="hr-link">
-                  Campaign Link
-                </a>
-              </span>
+              <span>📅 {multiDate ? `${campaign.dates[0].date} → ${campaign.dates[campaign.dates.length-1].date}` : campaign.dates[0].date}</span>
+              <span>🔗 <a href={campaign.links} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="hr-link">Campaign Link</a></span>
             </div>
           </div>
         </div>
-
-        {/* Right: stats + CUT + actions */}
         <div className="hr-card-stats">
+          <div className="hr-stat"><span className="hr-stat-val">{grandTotals.clicks.toLocaleString()}</span><span className="hr-stat-label">Clicks</span></div>
+          <div className="hr-stat"><span className="hr-stat-val hr-conv">{grandTotals.conversions.toLocaleString()}</span><span className="hr-stat-label">Conversions</span></div>
+          <div className="hr-stat"><span className="hr-stat-val">{grandTotals.stp.toLocaleString()}</span><span className="hr-stat-label">STP</span></div>
           <div className="hr-stat">
-            <span className="hr-stat-val">{totals.clicks.toLocaleString()}</span>
-            <span className="hr-stat-label">Clicks</span>
-          </div>
-          <div className="hr-stat">
-            <span className="hr-stat-val hr-conv">{totals.conversions.toLocaleString()}</span>
-            <span className="hr-stat-label">Conversions</span>
-          </div>
-          <div className="hr-stat">
-            <span className="hr-stat-val">{totals.stp.toLocaleString()}</span>
-            <span className="hr-stat-label">STP</span>
-          </div>
-          <div className="hr-stat">
-            <span className={`hr-stat-val ${parseFloat(totalCR) >= 5 ? 'cr-good-text' : parseFloat(totalCR) >= 1 ? 'cr-mid-text' : 'cr-low-text'}`}>
-              {totalCR}%
-            </span>
+            <span className={`hr-stat-val ${parseFloat(grandCR) >= 5 ? 'cr-good-text' : parseFloat(grandCR) >= 1 ? 'cr-mid-text' : 'cr-low-text'}`}>{grandCR}%</span>
             <span className="hr-stat-label">CR</span>
           </div>
-
-          {/* CUT editor */}
           <CutEditor campaign={campaign} />
-
           <div className="hr-card-actions" onClick={e => e.stopPropagation()}>
             <button className="hr-export-btn" onClick={exportExcel}>⬇ Excel</button>
           </div>
@@ -171,73 +239,26 @@ function CampaignCard({ campaign, index }) {
         </div>
       </div>
 
-      {/* Horizontal hourly table */}
       {expanded && (
         <div className="hr-table-wrap">
-          <table className="hr-table hr-table-h">
-            <thead>
-              <tr>
-                <th className="hr-th-metric">Metric</th>
-                {ALL_HOURS.map(h => (
-                  <th key={h.slot} className={`hr-th-hour ${hourMap[h.match] ? 'hr-th-has-data' : ''}`}>
-                    {h.slot}
-                  </th>
-                ))}
-                <th className="hr-th-total">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="hr-metric-label">Clicks</td>
-                {ALL_HOURS.map(h => {
-                  const v = val(h, 'clicks');
-                  return (
-                    <td key={h.slot} className={`hr-cell ${!hourMap[h.match] ? 'hr-cell-empty' : ''}`}>
-                      {v > 0 ? <span className="hr-clicks-val">{v.toLocaleString()}</span> : <span className="hr-zero">—</span>}
-                    </td>
-                  );
-                })}
-                <td className="hr-cell hr-total-cell"><strong>{totals.clicks.toLocaleString()}</strong></td>
-              </tr>
-              <tr>
-                <td className="hr-metric-label">Conversions</td>
-                {ALL_HOURS.map(h => {
-                  const v = val(h, 'conversions');
-                  return (
-                    <td key={h.slot} className={`hr-cell ${!hourMap[h.match] ? 'hr-cell-empty' : ''}`}>
-                      {v > 0 ? <span className="hr-conv-badge">{v}</span> : <span className="hr-zero">—</span>}
-                    </td>
-                  );
-                })}
-                <td className="hr-cell hr-total-cell"><strong className="hr-conv">{totals.conversions.toLocaleString()}</strong></td>
-              </tr>
-              <tr>
-                <td className="hr-metric-label">STP</td>
-                {ALL_HOURS.map(h => {
-                  const v = val(h, 'stp');
-                  return (
-                    <td key={h.slot} className={`hr-cell ${!hourMap[h.match] ? 'hr-cell-empty' : ''}`}>
-                      {v > 0 ? <span className="hr-stp-badge">{v}</span> : <span className="hr-zero">—</span>}
-                    </td>
-                  );
-                })}
-                <td className="hr-cell hr-total-cell"><strong>{totals.stp.toLocaleString()}</strong></td>
-              </tr>
-              <tr>
-                <td className="hr-metric-label">CR %</td>
-                {ALL_HOURS.map(h => {
-                  const cr = getCR(val(h,'clicks'), val(h,'conversions'));
-                  const hasData = !!hourMap[h.match];
-                  return (
-                    <td key={h.slot} className={`hr-cell ${!hasData ? 'hr-cell-empty' : ''}`}>
-                      {hasData ? <CRBadge value={cr} /> : <span className="hr-zero">—</span>}
-                    </td>
-                  );
-                })}
-                <td className="hr-cell hr-total-cell"><CRBadge value={totalCR} /></td>
-              </tr>
-            </tbody>
-          </table>
+          {/* Date tabs */}
+          <div className="hr-date-tabs" onClick={e => e.stopPropagation()}>
+            {multiDate && (
+              <button
+                className={`hr-date-tab ${!activeDate ? 'active' : ''}`}
+                onClick={() => setActiveDate(null)}
+              >All Dates</button>
+            )}
+            {campaign.dates.map(d => (
+              <button
+                key={d.date}
+                className={`hr-date-tab ${activeDate === d.date ? 'active' : ''}`}
+                onClick={() => setActiveDate(d.date)}
+              >{d.date}</button>
+            ))}
+          </div>
+          {/* Table */}
+          <HourlyTable hourlyData={activeDateEntry ? activeDateEntry.hourlyData : allHourlyData} />
         </div>
       )}
     </div>
@@ -262,7 +283,7 @@ export default function HourlyReport({ filters: externalFilters, onCountChange }
     if (!filters?.startDate || !filters?.endDate) return;
     setLoading(true); setError('');
     fetchHourlyReport(filters.startDate, filters.endDate)
-      .then(data => { setCampaigns(data); onCountChange?.(data.length); })
+      .then(data => { const grouped = groupCampaigns(data); setCampaigns(grouped); onCountChange?.(grouped.length); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [filters]);
@@ -271,21 +292,21 @@ export default function HourlyReport({ filters: externalFilters, onCountChange }
     if (!campaigns.length) return;
     const wb = XLSX.utils.book_new();
     campaigns.forEach(c => {
-      const hourMap = buildHourMap(c.hourlyData);
-      const totals  = computeTotals(c.hourlyData);
-      const v = (slot, key) => hourMap[slot.match]?.[key] || 0;
-      const header = ['Metric', ...ALL_HOURS.map(h => h.slot), 'Total'];
-      const rows = [
-        ['Clicks',      ...ALL_HOURS.map(h => v(h,'clicks')),      totals.clicks],
-        ['Conversions', ...ALL_HOURS.map(h => v(h,'conversions')), totals.conversions],
-        ['STP',         ...ALL_HOURS.map(h => v(h,'stp')),         totals.stp],
-        ['CR %',        ...ALL_HOURS.map(h => getCR(v(h,'clicks'), v(h,'conversions'))),
-          getCR(totals.clicks, totals.conversions)],
-      ];
-      const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
-      ws['!cols'] = header.map(() => ({ wch: 9 }));
-      ws['!cols'][0] = { wch: 14 };
-      XLSX.utils.book_append_sheet(wb, ws, `C${c.campaignId}_${c.productname}`.slice(0, 31));
+      c.dates.forEach(({ date, hourlyData }) => {
+        const hm  = buildHourMap(hourlyData);
+        const tot = computeTotals(hourlyData);
+        const v   = (slot, key) => hm[slot.match]?.[key] || 0;
+        const header = ['Metric', ...ALL_HOURS.map(h => h.slot), 'Total'];
+        const rows = [
+          ['Clicks',      ...ALL_HOURS.map(h => v(h,'clicks')),      tot.clicks],
+          ['Conversions', ...ALL_HOURS.map(h => v(h,'conversions')), tot.conversions],
+          ['STP',         ...ALL_HOURS.map(h => v(h,'stp')),         tot.stp],
+          ['CR %',        ...ALL_HOURS.map(h => getCR(v(h,'clicks'), v(h,'conversions'))), getCR(tot.clicks, tot.conversions)],
+        ];
+        const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+        ws['!cols'] = [{ wch: 14 }, ...ALL_HOURS.map(() => ({ wch: 9 })), { wch: 9 }];
+        XLSX.utils.book_append_sheet(wb, ws, `C${c.campaignId}_${date.slice(5)}`.slice(0,31));
+      });
     });
     XLSX.writeFile(wb, `hourly_vas_${filters.startDate}_${filters.endDate}.xlsx`);
   };
@@ -299,7 +320,7 @@ export default function HourlyReport({ filters: externalFilters, onCountChange }
             <div className="hr-header-icon">⏱️</div>
             <div>
               <h2>Hourly Report <span className="hr-vas-badge">VAS Only</span></h2>
-              <p>All 24 hours · {filters?.startDate} → {filters?.endDate}</p>
+              <p>All 24 hours · {filters?.startDate}{filters?.endDate !== filters?.startDate ? ` → ${filters?.endDate}` : ''}</p>
             </div>
           </div>
           <div className="hr-header-right">
@@ -335,7 +356,7 @@ export default function HourlyReport({ filters: externalFilters, onCountChange }
             </div>
           ) : (
             campaigns.map((c, i) => (
-              <CampaignCard key={`${c.campaignId}-${c.date}`} campaign={c} index={i} />
+              <CampaignCard key={c.campaignId} campaign={c} index={i} />
             ))
           )}
         </div>

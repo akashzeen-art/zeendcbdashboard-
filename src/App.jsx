@@ -92,7 +92,7 @@ export default function App() {
 
         {/* Tab content — each manages its own filters */}
         {activeTab === 'summary'    && <SummaryReports />}
-        {activeTab === 'hourly'     && <HourlyReport filters={filters} onCountChange={() => {}} />}
+        {activeTab === 'hourly'     && <HourlyReport />}
         {activeTab === 'pricepoint' && <PricePointReport />}
         {activeTab === 'publisher'  && <PublisherReport />}
         {activeTab === 'cutback'    && <Cutback />}

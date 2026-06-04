@@ -1642,7 +1642,29 @@ tbody tr:hover .ct-td-dummy { background: #f1f5f9 !important; }
   border-radius: 4px;
 }
 
-/* Null / missing data cell */
+/* Date tabs inside campaign card */
+.hr-date-tabs {
+  display: flex;
+  gap: .35rem;
+  padding: .65rem 1rem;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.hr-date-tab {
+  padding: .28rem .75rem;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  font-size: .75rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all .15s;
+}
+.hr-date-tab:hover  { border-color: var(--primary); color: var(--primary); }
+.hr-date-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 .null-cell {
   color: #cbd5e1;
   font-size: .85rem;

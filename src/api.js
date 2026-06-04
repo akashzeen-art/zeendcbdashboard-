@@ -10,13 +10,33 @@ function buildParams(filters) {
 }
 
 export async function fetchSummary(filters) {
-  const res = await fetch(`${BASE_URL}/dashboard/summary?${buildParams(filters)}`);
+  const apiParams = {
+    startDate: filters.startDate,
+    endDate:   filters.endDate,
+    ...(filters.billerName  && { billerName:  filters.billerName }),
+    ...(filters.operatorId  && { operatorId:  filters.operatorId }),
+    ...(filters.serviceName && { serviceName: filters.serviceName }),
+    // adnetwork maps to billerName if billerName not already set
+    ...(!filters.billerName && filters.adnetwork && { billerName: filters.adnetwork }),
+    ...(filters.page        && { page:        filters.page }),
+    ...(filters.size        && { size:        filters.size }),
+  };
+  const res = await fetch(`${BASE_URL}/dashboard/summary?${buildParams(apiParams)}`);
   if (!res.ok) throw new Error(`Failed to fetch summary (${res.status})`);
   return res.json();
 }
 
 export async function fetchSummaryDetails(filters) {
-  const res = await fetch(`${BASE_URL}/dashboard/summary-details?${buildParams(filters)}`);
+  const apiParams = {
+    startDate:   filters.startDate,
+    endDate:     filters.endDate,
+    ...(filters.billerName  && { billerName:  filters.billerName }),
+    ...(filters.operatorId  && { operatorId:  filters.operatorId }),
+    ...(filters.serviceName && { serviceName: filters.serviceName }),
+    ...(filters.page        && { page:        filters.page }),
+    ...(filters.size        && { size:        filters.size }),
+  };
+  const res = await fetch(`${BASE_URL}/dashboard/summary-details?${buildParams(apiParams)}`);
   if (!res.ok) throw new Error(`Failed to fetch details (${res.status})`);
   return res.json();
 }
