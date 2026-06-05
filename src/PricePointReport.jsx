@@ -19,7 +19,7 @@ const COLS = [
   { key: 'actRev',             label: 'Act Revenue' },
   { key: 'renewRev',           label: 'Renew Revenue' },
   { key: 'totalRev',           label: 'Total Revenue' },
-  { key: 'totalRevUsd',        label: 'Total Rev USD' },
+  { key: 'totalRevUsd',        label: 'Total Revenue' },
 ];
 
 // Aggregate rows by billerName + serviceName + operatorId (merge price points)
@@ -63,7 +63,7 @@ function aggregateRows(apiRows) {
       actRev:      row.actRev   > 0 ? row.actRev.toLocaleString()   : null,
       renewRev:    row.renewRev > 0 ? row.renewRev.toLocaleString() : null,
       totalRev:    totalRev     > 0 ? totalRev.toLocaleString()     : null,
-      totalRevUsd: totalRev     > 0 ? (totalRev / 550).toFixed(2)   : null,
+      totalRevUsd: totalRev > 0 ? totalRev.toFixed(2) : null,
     };
   });
 }

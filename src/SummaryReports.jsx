@@ -24,7 +24,7 @@ const S2S_COLS = [
   { key: 'pubCR',             label: 'Pub CR' },
   { key: 'actRev',            label: 'Activation Rev' },
   { key: 'renewRev',          label: 'Renewal Rev' },
-  { key: 'totalRevUsd',       label: 'Total Rev USD' },
+  { key: 'totalRevUsd',       label: 'Total Revenue' },
 ];
 
 const API_COLS = [
@@ -47,7 +47,7 @@ const API_COLS = [
   { key: 'pubCR',             label: 'Pub CR' },
   { key: 'actRev',            label: 'Activation Rev' },
   { key: 'renewRev',          label: 'Renewal Rev' },
-  { key: 'totalRevUsd',       label: 'Total Rev USD' },
+  { key: 'totalRevUsd',       label: 'Total Revenue' },
 ];
 
 // Aggregate hourly data: key = productname.toLowerCase()
@@ -150,9 +150,9 @@ function aggregateRows(apiRows, dateLabel, hourlyMap) {
       parkToAct,
       campCR,
       pubCR,
-      actRev:      row.actRev   > 0 ? row.actRev.toFixed(2)           : null,
-      renewRev:    row.renewRev > 0 ? row.renewRev.toFixed(2)         : null,
-      totalRevUsd: totalRev     > 0 ? (totalRev / 550).toFixed(2)     : null,
+      actRev:      row.actRev   > 0 ? row.actRev.toFixed(2)   : null,
+      renewRev:    row.renewRev > 0 ? row.renewRev.toFixed(2) : null,
+      totalRevUsd: totalRev     > 0 ? totalRev.toFixed(2)     : null,
       // API pin fields not available
       sendPin: null, uniqPinSend: null, verPin: null, uniqVerPin: null, pinVerSuccess: null,
     };

@@ -48,7 +48,7 @@ function aggregateRows(apiRows) {
     activation:   row.activation  || null,
     renewal:      row.renewal     || null,
     totalRev:     row.totalRevRaw > 0 ? row.totalRevRaw.toLocaleString()   : null,
-    totalRevUsd:  row.totalRevRaw > 0 ? (row.totalRevRaw / 550).toFixed(2) : null,
+    totalRevUsd:  row.totalRevRaw > 0 ? row.totalRevRaw.toFixed(2) : null,
   }));
 }
 
