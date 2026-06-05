@@ -22,27 +22,52 @@ const COLS = [
   { key: 'totalRevUsd',        label: 'Total Rev USD' },
 ];
 
-function mapRow(r) {
-  const price    = r.pricePoint || 0;
-  const actRev   = (r.activation || 0) * price;
-  const renewRev = (r.renewal    || 0) * price;
-  const totalRev = actRev + renewRev;
-  return {
-    billerName:        r.billerName        || null,
-    serviceName:       r.serviceName       || null,
-    operatorName:      r.operatorName      || null,
-    operatorId:        r.operatorId        || null,
-    pricePoint:        r.pricePoint        ?? null,
-    activation:        r.activation        ?? null,
-    renewal:           r.renewal           ?? null,
-    churn:             r.churn             ?? null,
-    activationPending: r.activationPending ?? null,
-    actRev:      actRev    > 0 ? actRev.toLocaleString()    : null,
-    renewRev:    renewRev  > 0 ? renewRev.toLocaleString()  : null,
-    totalRev:    totalRev  > 0 ? totalRev.toLocaleString()  : null,
-    totalRevUsd: totalRev  > 0 ? (totalRev / 550).toFixed(2) : null,
-  };
+// Aggregate rows by billerName + serviceName + operatorId (merge price points)
+function aggregateRows(apiRows) {
+  const map = new Map();
+  apiRows.forEach(r => {
+    const key = `${r.billerName}__${r.serviceName}__${r.operatorId}`;
+    if (!map.has(key)) {
+      map.set(key, {
+        billerName:        r.billerName        || null,
+        serviceName:       r.serviceName       || null,
+        operatorName:      r.operatorName      || null,
+        operatorId:        r.operatorId        || null,
+        pricePoint:        r.pricePoint        ?? null,
+        activation:        0,
+        renewal:           0,
+        churn:             0,
+        activationPending: 0,
+        actRev:            0,
+        renewRev:          0,
+      });
+    }
+    const row   = map.get(key);
+    const price = r.pricePoint || 0;
+    row.activation        += (r.activation        || 0);
+    row.renewal           += (r.renewal           || 0);
+    row.churn             += (r.churn             || 0);
+    row.activationPending += (r.activationPending || 0);
+    row.actRev            += (r.activation || 0) * price;
+    row.renewRev          += (r.renewal    || 0) * price;
+  });
+
+  return Array.from(map.values()).map(row => {
+    const totalRev = row.actRev + row.renewRev;
+    return {
+      ...row,
+      activation:        row.activation        || null,
+      renewal:           row.renewal           || null,
+      churn:             row.churn             || null,
+      activationPending: row.activationPending || null,
+      actRev:      row.actRev   > 0 ? row.actRev.toLocaleString()   : null,
+      renewRev:    row.renewRev > 0 ? row.renewRev.toLocaleString() : null,
+      totalRev:    totalRev     > 0 ? totalRev.toLocaleString()     : null,
+      totalRevUsd: totalRev     > 0 ? (totalRev / 550).toFixed(2)   : null,
+    };
+  });
 }
+
 
 export default function PricePointReport() {
   const today = new Date().toISOString().split('T')[0];
@@ -57,7 +82,7 @@ export default function PricePointReport() {
   const loadData = useCallback((f, p) => {
     setLoading(true); setError('');
     fetchSummary({ ...f, page: p, size: SIZE })
-      .then(res => { setData((res.data || []).map(mapRow)); setTotal(res.total || 0); })
+      .then(res => { setData(aggregateRows(res.data || [])); setTotal(res.total || 0); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
@@ -91,7 +116,7 @@ export default function PricePointReport() {
             </div>
           </div>
           <div className="ct-header-right">
-            {!loading && total > 0 && <span className="record-count">{total} records</span>}
+            {!loading && data.length > 0 && <span className="record-count">{data.length} records</span>}
             {!loading && data.length > 0 && <button className="ct-export-btn" onClick={exportExcel}>⬇ Export Excel</button>}
           </div>
         </div>

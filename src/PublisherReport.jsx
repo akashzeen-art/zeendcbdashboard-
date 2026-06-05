@@ -17,22 +17,41 @@ const COLS = [
   { key: 'totalRevUsd',  label: 'Cost in USD' },
 ];
 
-function mapRow(r) {
-  const price    = r.pricePoint || 0;
-  const actRev   = (r.activation || 0) * price;
-  const renewRev = (r.renewal    || 0) * price;
-  const totalRev = actRev + renewRev;
-  return {
-    billerName:   r.billerName   || null,
-    serviceName:  r.serviceName  || null,
-    operatorName: r.operatorName || null,
-    operatorId:   r.operatorId   || null,
-    activation:   r.activation   ?? null,
-    renewal:      r.renewal      ?? null,
-    totalRev:     totalRev > 0 ? totalRev.toLocaleString()    : null,
-    totalRevUsd:  totalRev > 0 ? (totalRev / 550).toFixed(2)  : null,
-  };
+// Aggregate rows by billerName + operatorId
+function aggregateRows(apiRows) {
+  const map = new Map();
+  apiRows.forEach(r => {
+    const key = `${r.billerName}__${r.operatorId}`;
+    if (!map.has(key)) {
+      map.set(key, {
+        billerName:   r.billerName   || null,
+        serviceName:  r.serviceName  || null,
+        operatorName: r.operatorName || null,
+        operatorId:   r.operatorId   || null,
+        activation:   0,
+        renewal:      0,
+        totalRevRaw:  0,
+      });
+    }
+    const row   = map.get(key);
+    const price = r.pricePoint || 0;
+    row.activation  += (r.activation || 0);
+    row.renewal     += (r.renewal    || 0);
+    row.totalRevRaw += ((r.activation || 0) + (r.renewal || 0)) * price;
+  });
+
+  return Array.from(map.values()).map(row => ({
+    billerName:   row.billerName,
+    serviceName:  row.serviceName,
+    operatorName: row.operatorName,
+    operatorId:   row.operatorId,
+    activation:   row.activation  || null,
+    renewal:      row.renewal     || null,
+    totalRev:     row.totalRevRaw > 0 ? row.totalRevRaw.toLocaleString()   : null,
+    totalRevUsd:  row.totalRevRaw > 0 ? (row.totalRevRaw / 550).toFixed(2) : null,
+  }));
 }
+
 
 export default function PublisherReport() {
   const today = new Date().toISOString().split('T')[0];
@@ -47,7 +66,7 @@ export default function PublisherReport() {
   const loadData = useCallback((f, p) => {
     setLoading(true); setError('');
     fetchSummary({ ...f, page: p, size: SIZE })
-      .then(res => { setData((res.data || []).map(mapRow)); setTotal(res.total || 0); })
+      .then(res => { setData(aggregateRows(res.data || [])); setTotal(res.total || 0); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
@@ -81,7 +100,7 @@ export default function PublisherReport() {
             </div>
           </div>
           <div className="ct-header-right">
-            {!loading && total > 0 && <span className="record-count">{total} records</span>}
+            {!loading && data.length > 0 && <span className="record-count">{data.length} records</span>}
             {!loading && data.length > 0 && <button className="ct-export-btn" onClick={exportExcel}>⬇ Export Excel</button>}
           </div>
         </div>

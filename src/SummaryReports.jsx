@@ -8,8 +8,8 @@ import * as XLSX from 'xlsx';
 
 const today = new Date().toISOString().split('T')[0];
 
-// S2S: Date_Biller_G/O/S_Clicks_Activations_STP_Parking_Deactivation_SDD_Renewals_Park→Act_Camp CR_Pub CR_Act Rev_Ren Rev_Total Rev USD
 const S2S_COLS = [
+  { key: 'date',              label: 'Date' },
   { key: 'billerName',        label: 'Biller' },
   { key: 'operatorName',      label: 'G / O / S' },
   { key: 'clicks',            label: 'Clicks' },
@@ -19,7 +19,7 @@ const S2S_COLS = [
   { key: 'churn',             label: 'Deactivation' },
   { key: 'sdd',               label: 'SDD' },
   { key: 'renewal',           label: 'Renewals' },
-  { key: 'parkToAct',         label: 'Park → Act' },
+  { key: 'parkToAct',         label: 'Parking to Activations' },
   { key: 'campCR',            label: 'Camp CR' },
   { key: 'pubCR',             label: 'Pub CR' },
   { key: 'actRev',            label: 'Activation Rev' },
@@ -27,22 +27,22 @@ const S2S_COLS = [
   { key: 'totalRevUsd',       label: 'Total Rev USD' },
 ];
 
-// API: Date_Biller_G/O/S_SendPin_UniqPinSend_VerPin_UniqVerPin_PinVerSuccess_Activations_STP_Parking_Deactivation_SDD_Renewals_Park→Act_Camp CR_Pub CR_Act Rev_Ren Rev_Total Rev USD
 const API_COLS = [
+  { key: 'date',              label: 'Date' },
   { key: 'billerName',        label: 'Biller' },
   { key: 'operatorName',      label: 'G / O / S' },
-  { key: 'sendPin',           label: 'Send Pin',        na: true },
-  { key: 'uniqPinSend',       label: 'Uniq Pin Send',   na: true },
-  { key: 'verPin',            label: 'Ver Pin',          na: true },
-  { key: 'uniqVerPin',        label: 'Uniq Ver Pin',     na: true },
-  { key: 'pinVerSuccess',     label: 'Pin Ver Success',  na: true },
+  { key: 'sendPin',           label: 'Send Pin',       na: true },
+  { key: 'uniqPinSend',       label: 'Uniq Pin Send',  na: true },
+  { key: 'verPin',            label: 'Ver Pin',         na: true },
+  { key: 'uniqVerPin',        label: 'Uniq Ver Pin',    na: true },
+  { key: 'pinVerSuccess',     label: 'Pin Ver Success', na: true },
   { key: 'activation',        label: 'Activations' },
   { key: 'stp',               label: 'Send to Pub' },
   { key: 'activationPending', label: 'Parking' },
   { key: 'churn',             label: 'Deactivation' },
   { key: 'sdd',               label: 'SDD' },
   { key: 'renewal',           label: 'Renewals' },
-  { key: 'parkToAct',         label: 'Park → Act' },
+  { key: 'parkToAct',         label: 'Parking to Activations' },
   { key: 'campCR',            label: 'Camp CR' },
   { key: 'pubCR',             label: 'Pub CR' },
   { key: 'actRev',            label: 'Activation Rev' },
@@ -50,59 +50,113 @@ const API_COLS = [
   { key: 'totalRevUsd',       label: 'Total Rev USD' },
 ];
 
+// Aggregate hourly data: key = productname.toLowerCase()
 function buildHourlyMap(hourlyRows) {
   const map = {};
   (hourlyRows || []).forEach(c => {
-    const key = (c.productname || '').toLowerCase().trim();
+    // index by productname AND partial matches (e.g. 'brics daily' → 'briccs')
+    const raw = (c.productname || '').toLowerCase().trim();
+    const keys = [
+      raw,
+      raw.replace(/\s+/g, ''),
+      // map known productnames to billerName equivalents
+      raw.startsWith('brics') ? 'briccs' : null,
+      raw.startsWith('xceed') ? 'xceed'  : null,
+    ].filter(Boolean);
     const t = (c.hourlyData || []).reduce(
-      (a, h) => ({ clicks: a.clicks + (h.clicks || 0), stp: a.stp + (h.stp || 0) }),
-      { clicks: 0, stp: 0 }
+      (a, h) => ({
+        clicks:      a.clicks      + (h.clicks      || 0),
+        stp:         a.stp         + (h.stp         || 0),
+        conversions: a.conversions + (h.conversions || 0),
+      }),
+      { clicks: 0, stp: 0, conversions: 0 }
     );
-    if (!map[key]) map[key] = { clicks: 0, stp: 0 };
-    map[key].clicks += t.clicks;
-    map[key].stp    += t.stp;
+    keys.forEach(key => {
+      if (!key) return;
+      if (!map[key]) map[key] = { clicks: 0, stp: 0, conversions: 0 };
+      map[key].clicks      += t.clicks;
+      map[key].stp         += t.stp;
+      map[key].conversions += t.conversions;
+    });
   });
   return map;
 }
 
-function mapRow(r, hourlyMap) {
-  const price    = r.pricePoint || 0;
-  const act      = r.activation || 0;
-  const ren      = r.renewal    || 0;
-  const churn    = r.churn      || 0;
-  const parking  = r.activationPending || 0;
-  const actRev   = act * price;
-  const renewRev = ren * price;
-  const totalRev = actRev + renewRev;
+// Aggregate API rows by date+billerName+operatorId — multiple pricePoint rows → one row
+function aggregateRows(apiRows, dateLabel, hourlyMap) {
+  const map = new Map();
 
-  const keys   = [(r.serviceName || '').toLowerCase().trim(), (r.billerName || '').toLowerCase().trim()];
-  const hourly = keys.reduce((f, k) => f || hourlyMap[k] || null, null);
+  apiRows.forEach(r => {
+    const key = `${r.billerName}__${r.operatorId}`;
+    if (!map.has(key)) {
+      map.set(key, {
+        date:              dateLabel,
+        billerName:        r.billerName        || null,
+        operatorName:      r.operatorName ? `${r.operatorName} (${r.operatorId})` : (r.operatorId ? String(r.operatorId) : null),
+        activation:        0,
+        renewal:           0,
+        churn:             0,
+        activationPending: 0,
+        actRev:            0,
+        renewRev:          0,
+        _billerKey:        (r.billerName  || '').toLowerCase().trim(),
+        _serviceKey:       (r.serviceName || '').toLowerCase().trim(),
+      });
+    }
+    const row = map.get(key);
+    const price = r.pricePoint || 0;
+    const act   = r.activation || 0;
+    const ren   = r.renewal    || 0;
+    row.activation        += act;
+    row.renewal           += ren;
+    row.churn             += (r.churn             || 0);
+    row.activationPending += (r.activationPending || 0);
+    row.actRev            += act * price;
+    row.renewRev          += ren * price;
+  });
 
-  const clicks   = hourly?.clicks ?? null;
-  const stp      = hourly?.stp    ?? null;
-  const campCR   = clicks > 0 && act > 0  ? ((act / clicks) * 100).toFixed(2) : null;
-  const pubCR    = clicks > 0 && ren > 0  ? ((ren / clicks) * 100).toFixed(2) : null;
-  const parkToAct = parking > 0 && act > 0 ? ((act / parking) * 100).toFixed(2) : null;
+  return Array.from(map.values()).map(row => {
+    const bk = (row._billerKey  || '').toLowerCase().trim();
+    const sk = (row._serviceKey || '').toLowerCase().trim();
+    const hourly = [
+      bk,
+      bk.replace(/\s+/g, ''),
+      sk,
+      sk.replace(/\s+/g, ''),
+    ].reduce((f, k) => f || (k && hourlyMap[k]) || null, null);
+    const clicks      = hourly?.clicks      ?? null;
+    const stp         = hourly?.stp         ?? null;
+    const conversions = hourly?.conversions ?? null;
+    const act       = row.activation;
+    const ren       = row.renewal;
+    const parking   = row.activationPending;
+    const totalRev  = row.actRev + row.renewRev;
 
-  return {
-    billerName:        r.billerName        || null,
-    operatorName:      r.operatorName ? `${r.operatorName} (${r.operatorId})` : (r.operatorId ? String(r.operatorId) : null),
-    clicks,
-    activation:        r.activation        ?? null,
-    stp,
-    activationPending: r.activationPending ?? null,
-    churn:             r.churn             ?? null,
-    sdd:               null, // not in API
-    renewal:           r.renewal           ?? null,
-    parkToAct,
-    campCR,
-    pubCR,
-    actRev:      actRev    > 0 ? actRev.toFixed(2)           : null,
-    renewRev:    renewRev  > 0 ? renewRev.toFixed(2)         : null,
-    totalRevUsd: totalRev  > 0 ? (totalRev / 550).toFixed(2) : null,
-    // API-only pin fields — not available in API
-    sendPin: null, uniqPinSend: null, verPin: null, uniqVerPin: null, pinVerSuccess: null,
-  };
+    const campCR   = clicks > 0 && act > 0     ? ((act     / clicks)  * 100).toFixed(2) : null;
+    const pubCR    = clicks > 0 && ren > 0     ? ((ren     / clicks)  * 100).toFixed(2) : null;
+    const parkToAct = parking > 0 && act > 0   ? ((act     / parking) * 100).toFixed(2) : null;
+
+    return {
+      date:              row.date,
+      billerName:        row.billerName,
+      operatorName:      row.operatorName,
+      clicks,
+      activation:        act       || null,
+      stp:               stp ?? conversions ?? null,
+      activationPending: parking   || null,
+      churn:             row.churn || null,
+      sdd:               null,
+      renewal:           ren       || null,
+      parkToAct,
+      campCR,
+      pubCR,
+      actRev:      row.actRev   > 0 ? row.actRev.toFixed(2)           : null,
+      renewRev:    row.renewRev > 0 ? row.renewRev.toFixed(2)         : null,
+      totalRevUsd: totalRev     > 0 ? (totalRev / 550).toFixed(2)     : null,
+      // API pin fields not available
+      sendPin: null, uniqPinSend: null, verPin: null, uniqVerPin: null, pinVerSuccess: null,
+    };
+  });
 }
 
 function CRCell({ v }) {
@@ -114,12 +168,13 @@ function CRCell({ v }) {
 function Cell({ col, row }) {
   const v = row[col.key];
   if (col.key === 'campCR' || col.key === 'pubCR' || col.key === 'parkToAct') return <CRCell v={v} />;
-  if (col.na) return <span className="ct-muted" style={{fontSize:'.72rem'}}>N/A</span>;
+  if (col.na) return <span className="ct-muted" style={{ fontSize: '.72rem' }}>N/A</span>;
   if (v == null) return <NullCell />;
-  if (col.key === 'billerName')    return <span className="td-primary">{v}</span>;
-  if (col.key === 'operatorName')  return <span className="ct-network">{v}</span>;
-  if (col.key === 'clicks')        return <strong>{Number(v).toLocaleString()}</strong>;
-  if (col.key === 'stp')           return <span className="stp-badge">{Number(v).toLocaleString()}</span>;
+  if (col.key === 'date')         return <span className="ct-date">{v}</span>;
+  if (col.key === 'billerName')   return <span className="td-primary">{v}</span>;
+  if (col.key === 'operatorName') return <span className="ct-network">{v}</span>;
+  if (col.key === 'clicks')       return <strong>{Number(v).toLocaleString()}</strong>;
+  if (col.key === 'stp')          return <span className="stp-badge">{Number(v).toLocaleString()}</span>;
   if (col.key === 'actRev' || col.key === 'renewRev' || col.key === 'totalRevUsd')
     return <span className="ct-rev">{v}</span>;
   return typeof v === 'number' ? v.toLocaleString() : v;
@@ -137,13 +192,15 @@ export default function SummaryReports() {
 
   const loadData = useCallback((f, p) => {
     setLoading(true); setError('');
+    const dateLabel = `${f.startDate}${f.endDate !== f.startDate ? ` → ${f.endDate}` : ''}`;
     Promise.all([
       fetchSummary({ ...f, page: p, size: SIZE }),
       fetchHourlyReport(f.startDate, f.endDate).catch(() => []),
     ])
       .then(([res, hourlyData]) => {
         const hourlyMap = buildHourlyMap(hourlyData);
-        setRows((res.data || []).map(r => mapRow(r, hourlyMap)));
+        const aggregated = aggregateRows(res.data || [], dateLabel, hourlyMap);
+        setRows(aggregated);
         setTotal(res.total || 0);
       })
       .catch(e => setError(e.message))
@@ -157,6 +214,7 @@ export default function SummaryReports() {
   const handlePageChange = (p) => { setPage(p); loadData(filters, p); };
 
   const cols = subTab === 's2s' ? S2S_COLS : API_COLS;
+  const dateLabel = `${filters.startDate}${filters.endDate !== filters.startDate ? ` → ${filters.endDate}` : ''}`;
 
   const exportExcel = () => {
     if (!rows.length) return;
@@ -167,8 +225,6 @@ export default function SummaryReports() {
     XLSX.utils.book_append_sheet(wb, ws, subTab === 's2s' ? 'S2S Report' : 'API Report');
     XLSX.writeFile(wb, `summary_${subTab}_${filters.startDate}_${filters.endDate}.xlsx`);
   };
-
-  const dateLabel = `${filters.startDate}${filters.endDate !== filters.startDate ? ` → ${filters.endDate}` : ''}`;
 
   return (
     <div>
@@ -193,7 +249,7 @@ export default function SummaryReports() {
             </div>
           </div>
           <div className="ct-header-right">
-            {!loading && total > 0 && <span className="record-count">{total} records</span>}
+            {!loading && rows.length > 0 && <span className="record-count">{rows.length} records</span>}
             {!loading && rows.length > 0 && <button className="ct-export-btn" onClick={exportExcel}>⬇ Export Excel</button>}
           </div>
         </div>
@@ -205,7 +261,7 @@ export default function SummaryReports() {
             </thead>
             <tbody>
               {loading ? (
-                <SkeletonRows cols={cols.length} rows={8} />
+                <SkeletonRows cols={cols.length} rows={5} />
               ) : rows.length === 0 ? (
                 <tr><td colSpan={cols.length}>
                   <div className="no-data-inner" style={{ padding: '3rem' }}>
