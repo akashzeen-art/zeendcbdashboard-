@@ -53,16 +53,15 @@ const API_COLS = [
 // Aggregate hourly data: key = productname.toLowerCase()
 function buildHourlyMap(hourlyRows) {
   const map = {};
+  const add = (key, t) => {
+    if (!key) return;
+    if (!map[key]) map[key] = { clicks: 0, stp: 0, conversions: 0 };
+    map[key].clicks      += t.clicks;
+    map[key].stp         += t.stp;
+    map[key].conversions += t.conversions;
+  };
   (hourlyRows || []).forEach(c => {
-    // index by productname AND partial matches (e.g. 'brics daily' → 'briccs')
     const raw = (c.productname || '').toLowerCase().trim();
-    const keys = [
-      raw,
-      raw.replace(/\s+/g, ''),
-      // map known productnames to billerName equivalents
-      raw.startsWith('brics') ? 'briccs' : null,
-      raw.startsWith('xceed') ? 'xceed'  : null,
-    ].filter(Boolean);
     const t = (c.hourlyData || []).reduce(
       (a, h) => ({
         clicks:      a.clicks      + (h.clicks      || 0),
@@ -71,13 +70,11 @@ function buildHourlyMap(hourlyRows) {
       }),
       { clicks: 0, stp: 0, conversions: 0 }
     );
-    keys.forEach(key => {
-      if (!key) return;
-      if (!map[key]) map[key] = { clicks: 0, stp: 0, conversions: 0 };
-      map[key].clicks      += t.clicks;
-      map[key].stp         += t.stp;
-      map[key].conversions += t.conversions;
-    });
+    // Add by raw name
+    add(raw, t);
+    // Add by billerName alias (only if different from raw)
+    if (raw.startsWith('brics') && raw !== 'briccs') add('briccs', t);
+    if (raw === 'xceed') add('xceed', t); // already same, skip double-add
   });
   return map;
 }
@@ -116,14 +113,9 @@ function aggregateRows(apiRows, dateLabel, hourlyMap) {
   });
 
   return Array.from(map.values()).map(row => {
-    const bk = (row._billerKey  || '').toLowerCase().trim();
-    const sk = (row._serviceKey || '').toLowerCase().trim();
-    const hourly = [
-      bk,
-      bk.replace(/\s+/g, ''),
-      sk,
-      sk.replace(/\s+/g, ''),
-    ].reduce((f, k) => f || (k && hourlyMap[k]) || null, null);
+    const bk     = (row._billerKey  || '').toLowerCase().trim();
+    const sk     = (row._serviceKey || '').toLowerCase().trim();
+    const hourly = hourlyMap[bk] || hourlyMap[sk] || null;
     const clicks      = hourly?.clicks      ?? null;
     const stp         = hourly?.stp         ?? null;
     const conversions = hourly?.conversions ?? null;
