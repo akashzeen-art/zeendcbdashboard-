@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchSummary, fetchHourlyReport } from './api';
 import { SummaryFilterBar } from './FilterPanel';
 import Pagination from './Pagination';
@@ -72,9 +72,8 @@ function buildHourlyMap(hourlyRows) {
     );
     // Add by raw name
     add(raw, t);
-    // Add by billerName alias (only if different from raw)
+    // Add alias only if different from raw to avoid double-counting
     if (raw.startsWith('brics') && raw !== 'briccs') add('briccs', t);
-    if (raw === 'xceed') add('xceed', t); // already same, skip double-add
   });
   return map;
 }
@@ -182,9 +181,12 @@ export default function SummaryReports() {
   const [error,   setError]   = useState('');
   const SIZE = 15;
 
-  const loadData = useCallback((f, p) => {
+  const filtersRef = useRef(filters);
+
+  const loadData = (f, p) => {
+    filtersRef.current = f;
     setLoading(true); setError('');
-    const dateLabel = `${f.startDate}${f.endDate !== f.startDate ? ` → ${f.endDate}` : ''}`;
+    const dateLabel = `${f.startDate}${f.endDate !== f.startDate ? ` \u2192 ${f.endDate}` : ''}`;
     Promise.all([
       fetchSummary({ ...f, page: p, size: SIZE }),
       fetchHourlyReport(f.startDate, f.endDate).catch(() => []),
@@ -197,13 +199,12 @@ export default function SummaryReports() {
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  };
 
   useEffect(() => { loadData(filters, 1); }, []); // eslint-disable-line
-  useEffect(() => { if (page === 1) return; loadData(filters, page); }, [page]); // eslint-disable-line
 
   const handleApply = (f) => { setFilters(f); setPage(1); setRows([]); setTotal(0); loadData(f, 1); };
-  const handlePageChange = (p) => { setPage(p); loadData(filters, p); };
+  const handlePageChange = (p) => { setPage(p); loadData(filtersRef.current, p); };
 
   const cols = subTab === 's2s' ? S2S_COLS : API_COLS;
   const dateLabel = `${filters.startDate}${filters.endDate !== filters.startDate ? ` → ${filters.endDate}` : ''}`;

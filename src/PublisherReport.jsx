@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchSummary } from './api';
 import { PublisherFilterBar } from './FilterPanel';
 import Pagination from './Pagination';
@@ -63,18 +63,21 @@ export default function PublisherReport() {
   const [error,   setError]   = useState('');
   const SIZE = 15;
 
-  const loadData = useCallback((f, p) => {
+  const filtersRef = useRef(filters);
+
+  const loadData = (f, p) => {
+    filtersRef.current = f;
     setLoading(true); setError('');
     fetchSummary({ ...f, page: p, size: SIZE })
       .then(res => { setData(aggregateRows(res.data || [])); setTotal(res.total || 0); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  };
 
   useEffect(() => { loadData(filters, 1); }, []); // eslint-disable-line
 
   const handleApply = (f) => { setFilters(f); setPage(1); setData([]); loadData(f, 1); };
-  const handlePageChange = (p) => { setPage(p); loadData(filters, p); };
+  const handlePageChange = (p) => { setPage(p); loadData(filtersRef.current, p); };
 
   const exportExcel = () => {
     const rows = data.map(r => Object.fromEntries(COLS.map(c => [c.label, r[c.key] ?? ''])));
