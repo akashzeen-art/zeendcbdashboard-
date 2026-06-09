@@ -286,7 +286,14 @@ export default function HourlyReport({ filters: externalFilters, onCountChange }
     if (!filters?.startDate || !filters?.endDate) return;
     setLoading(true); setError('');
     fetchHourlyReport(filters.startDate, filters.endDate)
-      .then(data => { const grouped = groupCampaigns(data); setCampaigns(grouped); onCountChange?.(grouped.length); })
+      .then(data => {
+        const grouped = groupCampaigns(data);
+        const filtered = filters.campaignName
+          ? grouped.filter(c => c.productname === filters.campaignName)
+          : grouped;
+        setCampaigns(filtered);
+        onCountChange?.(filtered.length);
+      })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [filters]);

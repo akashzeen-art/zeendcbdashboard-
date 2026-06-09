@@ -175,16 +175,40 @@ export function SummaryFilterBar({ onApply }) {
   );
 }
 
-// Hourly Report filter bar — just date range
+// Hourly Report filter bar — date range + campaign name
 export function HourlyFilterBar({ onApply }) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [dateRange, setDateRange] = useState({ s: startOfDay(new Date()), e: endOfDay(new Date()) });
-  const [f, setF] = useState({ startDate: today, endDate: today });
+  const [f, setF] = useState({ startDate: today, endDate: today, campaignName: '' });
+  const [campaigns, setCampaigns] = useState([]);
+  const [loadingCamps, setLoadingCamps] = useState(false);
+
+  const fetchCampaigns = async (startDate, endDate) => {
+    setLoadingCamps(true);
+    try {
+      const res = await fetch('/postbacks/hourlyReport', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startDate, endDate }),
+      });
+      const data = await res.json();
+      const vas = Array.isArray(data) ? data.filter(c => c.type === 'vas') : [];
+      const names = [...new Set(vas.map(c => c.productname).filter(Boolean))].sort();
+      setCampaigns(names);
+    } catch {}
+    finally { setLoadingCamps(false); }
+  };
 
   const handleDate = (r) => {
     setDateRange(r);
-    setF({ startDate: format(r.s,'yyyy-MM-dd'), endDate: format(r.e,'yyyy-MM-dd') });
+    const startDate = format(r.s,'yyyy-MM-dd');
+    const endDate   = format(r.e,'yyyy-MM-dd');
+    setF(p => ({ ...p, startDate, endDate, campaignName: '' }));
+    fetchCampaigns(startDate, endDate);
   };
+
+  // Load campaigns for today on mount
+  useEffect(() => { fetchCampaigns(today, today); }, []);
 
   return (
     <div className="filter-panel">
@@ -199,8 +223,21 @@ export function HourlyFilterBar({ onApply }) {
               <label className="fb-label">Date Range <span className="req">*</span></label>
               <DateRangePicker value={dateRange} onChange={handleDate} />
             </div>
+            <Dropdown
+              label="Campaign Name"
+              value={f.campaignName}
+              options={campaigns}
+              onChange={v => setF(p => ({ ...p, campaignName: v }))}
+              placeholder="All Campaigns"
+              loading={loadingCamps}
+            />
             <div className="filter-actions">
               <button type="submit" className="btn-apply">🔍 Apply</button>
+              <button type="button" className="btn-reset" onClick={() => {
+                setF({ startDate: today, endDate: today, campaignName: '' });
+                setDateRange({ s: startOfDay(new Date()), e: endOfDay(new Date()) });
+                fetchCampaigns(today, today);
+              }}>↺ Reset</button>
             </div>
           </div>
         </form>
