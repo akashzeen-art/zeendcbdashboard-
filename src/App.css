@@ -1643,28 +1643,69 @@ tbody tr:hover .ct-td-dummy { background: #f1f5f9 !important; }
 }
 
 /* Date tabs inside campaign card */
+.hr-expanded-wrap {
+  display: flex;
+  border-top: 1px solid var(--border);
+  min-height: 200px;
+}
+
+.hr-date-sidebar {
+  width: 160px;
+  flex-shrink: 0;
+  background: var(--surface2);
+  border-right: 1px solid var(--border);
+  padding: .5rem .5rem;
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  max-height: 400px;
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+}
+
+.hr-date-sidebar-title {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--text-muted);
+  padding: 0 .3rem .35rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: .15rem;
+}
+
 .hr-date-tabs {
   display: flex;
-  gap: .35rem;
-  padding: .65rem 1rem;
-  background: var(--surface2);
-  border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: .25rem;
 }
+
 .hr-date-tab {
-  padding: .28rem .75rem;
-  border: 1.5px solid var(--border);
-  border-radius: 20px;
+  padding: .28rem .6rem;
+  border: 1px solid var(--border);
+  border-radius: 5px;
   background: var(--surface);
-  font-size: .75rem;
-  font-weight: 600;
+  font-size: .73rem;
+  font-weight: 500;
   font-family: inherit;
   color: var(--text-muted);
   cursor: pointer;
-  transition: all .15s;
+  transition: all .12s;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
 }
-.hr-date-tab:hover  { border-color: var(--primary); color: var(--primary); }
-.hr-date-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.hr-date-tab:hover  { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+.hr-date-tab.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  font-weight: 700;
+}
 .null-cell {
   color: #cbd5e1;
   font-size: .85rem;

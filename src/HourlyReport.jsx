@@ -240,25 +240,28 @@ function CampaignCard({ campaign, index }) {
       </div>
 
       {expanded && (
-        <div className="hr-table-wrap">
-          {/* Date tabs */}
-          <div className="hr-date-tabs" onClick={e => e.stopPropagation()}>
-            {multiDate && (
+        <div className="hr-expanded-wrap">
+          {/* Date list sidebar */}
+          {multiDate && (
+            <div className="hr-date-sidebar" onClick={e => e.stopPropagation()}>
+              <div className="hr-date-sidebar-title">Select Date</div>
               <button
                 className={`hr-date-tab ${!activeDate ? 'active' : ''}`}
                 onClick={() => setActiveDate(null)}
               >All Dates</button>
-            )}
-            {campaign.dates.map(d => (
-              <button
-                key={d.date}
-                className={`hr-date-tab ${activeDate === d.date ? 'active' : ''}`}
-                onClick={() => setActiveDate(d.date)}
-              >{d.date}</button>
-            ))}
+              {campaign.dates.map(d => (
+                <button
+                  key={d.date}
+                  className={`hr-date-tab ${activeDate === d.date ? 'active' : ''}`}
+                  onClick={() => setActiveDate(d.date)}
+                >{d.date}</button>
+              ))}
+            </div>
+          )}
+          {/* Hourly table */}
+          <div className="hr-table-wrap" style={{flex:1,minWidth:0}}>
+            <HourlyTable hourlyData={activeDateEntry ? activeDateEntry.hourlyData : allHourlyData} />
           </div>
-          {/* Table */}
-          <HourlyTable hourlyData={activeDateEntry ? activeDateEntry.hourlyData : allHourlyData} />
         </div>
       )}
     </div>
