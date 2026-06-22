@@ -50,6 +50,89 @@ const API_COLS = [
 ];
 
 // Aggregate hourly data: key = productname.toLowerCase()
+function hourlyTotals(hourlyData) {
+  return (hourlyData || []).reduce(
+    (a, h) => ({
+      clicks:      a.clicks      + (h.clicks      || 0),
+      stp:         a.stp         + (h.stp         || 0),
+      conversions: a.conversions + (h.conversions || 0),
+    }),
+    { clicks: 0, stp: 0, conversions: 0 }
+  );
+}
+
+function billerFromHourly(c) {
+  const links   = (c.links || '').toLowerCase();
+  const product = (c.productname || '').toLowerCase().trim();
+  if (links.includes('/briccs/') || links.includes('briccslp') || product.includes('bric')) {
+    return { billerName: 'BRICCS', operatorId: 2135, operatorName: 'NG_MTN (2135)', serviceName: 'Poker' };
+  }
+  if (links.includes('xceed') || product === 'xceed') {
+    return { billerName: 'XCEED', operatorId: 9039, operatorName: 'SD_MTN (9039)', serviceName: 'AIGamopedia' };
+  }
+  return null;
+}
+
+function passesHourlyFilters(meta, filters) {
+  if (filters.billerName && meta.billerName !== filters.billerName) return false;
+  if (filters.adnetwork && meta.billerName !== filters.adnetwork) return false;
+  if (filters.operatorId && String(meta.operatorId) !== String(filters.operatorId)) return false;
+  if (filters.serviceName && meta.serviceName &&
+      filters.serviceName.toLowerCase() !== meta.serviceName.toLowerCase()) return false;
+  return true;
+}
+
+// When billing summary is empty (e.g. same-day), still show click traffic from hourly API
+function buildHourlyOnlyRows(hourlyRows, dateLabel, filters, coveredKeys) {
+  const groups = new Map();
+
+  (hourlyRows || []).forEach(c => {
+    const meta = billerFromHourly(c);
+    if (!meta || !passesHourlyFilters(meta, filters)) return;
+
+    const key = `${meta.billerName}__${meta.operatorId || ''}`;
+    if (coveredKeys.has(key)) return;
+
+    const t = hourlyTotals(c.hourlyData);
+    if (!t.clicks && !t.stp && !t.conversions) return;
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        date: dateLabel,
+        billerName: meta.billerName,
+        operatorName: meta.operatorName,
+        clicks: 0,
+        stp: 0,
+        conversions: 0,
+      });
+    }
+    const row = groups.get(key);
+    row.clicks      += t.clicks;
+    row.stp         += t.stp;
+    row.conversions += t.conversions;
+  });
+
+  return Array.from(groups.values()).map(row => ({
+    date:              row.date,
+    billerName:        row.billerName,
+    operatorName:      row.operatorName,
+    clicks:            row.clicks || null,
+    activation:        null,
+    stp:               row.stp || row.conversions || null,
+    activationPending: null,
+    churn:             null,
+    sdd:               null,
+    renewal:           null,
+    parkToAct:         null,
+    campCR:            null,
+    pubCR:             null,
+    actRev:            null,
+    renewRev:          null,
+    totalRevUsd:       null,
+    sendPin: null, uniqPinSend: null, verPin: null, uniqVerPin: null, pinVerSuccess: null,
+  }));
+}
+
 function buildHourlyMap(hourlyRows) {
   const map = {};
   const add = (key, t) => {
@@ -61,18 +144,11 @@ function buildHourlyMap(hourlyRows) {
   };
   (hourlyRows || []).forEach(c => {
     const raw = (c.productname || '').toLowerCase().trim();
-    const t = (c.hourlyData || []).reduce(
-      (a, h) => ({
-        clicks:      a.clicks      + (h.clicks      || 0),
-        stp:         a.stp         + (h.stp         || 0),
-        conversions: a.conversions + (h.conversions || 0),
-      }),
-      { clicks: 0, stp: 0, conversions: 0 }
-    );
-    // Add by raw name
+    const t   = hourlyTotals(c.hourlyData);
     add(raw, t);
-    // Add alias only if different from raw to avoid double-counting
-    if (raw.startsWith('brics') && raw !== 'briccs') add('briccs', t);
+    if (raw.startsWith('bric') && raw !== 'briccs') add('briccs', t);
+    const links = (c.links || '').toLowerCase();
+    if (links.includes('briccslp') || links.includes('/briccs/')) add('briccs', t);
   });
   return map;
 }
@@ -191,10 +267,14 @@ export default function SummaryReports() {
       fetchHourlyReport(f.startDate, f.endDate).catch(() => []),
     ])
       .then(([res, hourlyData]) => {
-        const hourlyMap = buildHourlyMap(hourlyData);
-        const aggregated = aggregateRows(res.data || [], dateLabel, hourlyMap);
-        setRows(aggregated);
-        setTotal(res.total || 0);
+        const apiRows      = res.data || [];
+        const coveredKeys  = new Set(apiRows.map(r => `${r.billerName || ''}__${r.operatorId || ''}`));
+        const hourlyMap    = buildHourlyMap(hourlyData);
+        const aggregated   = aggregateRows(apiRows, dateLabel, hourlyMap);
+        const hourlyOnly   = buildHourlyOnlyRows(hourlyData, dateLabel, f, coveredKeys);
+        const allRows      = [...aggregated, ...hourlyOnly];
+        setRows(allRows);
+        setTotal(Math.max(res.total || 0, allRows.length));
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
