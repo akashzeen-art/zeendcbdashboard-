@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { fetchSummary, fetchHourlyReport } from './api';
-import { SummaryFilterBar } from './FilterPanel';
+import { SummaryFilterBar, DEFAULT_SUMMARY_FILTERS } from './FilterPanel';
 import Pagination from './Pagination';
 import SkeletonRows from './SkeletonRows';
 import NullCell from './NullCell';
 import * as XLSX from 'xlsx';
 
-const today = new Date().toISOString().split('T')[0];
 
 const S2S_COLS = [
   { key: 'date',              label: 'Date' },
@@ -173,7 +172,7 @@ function Cell({ col, row }) {
 
 export default function SummaryReports() {
   const [subTab,  setSubTab]  = useState('s2s');
-  const [filters, setFilters] = useState({ startDate: today, endDate: today, billerName: '', operatorId: '', serviceName: '', adnetwork: '' });
+  const [filters, setFilters] = useState(DEFAULT_SUMMARY_FILTERS);
   const [rows,    setRows]    = useState([]);
   const [total,   setTotal]   = useState(0);
   const [page,    setPage]    = useState(1);

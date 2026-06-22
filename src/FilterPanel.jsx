@@ -4,7 +4,18 @@ import { fetchFilterOptions } from './api';
 import DateRangePicker from './DateRangePicker';
 
 const today = new Date().toISOString().split('T')[0];
+const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
 const todayRange = { s: startOfDay(new Date()), e: endOfDay(new Date()) };
+const summaryDateRange = { s: startOfDay(new Date(monthAgo)), e: endOfDay(new Date()) };
+
+export const DEFAULT_SUMMARY_FILTERS = {
+  startDate: monthAgo,
+  endDate: today,
+  billerName: '',
+  operatorId: '',
+  serviceName: '',
+  adnetwork: '',
+};
 
 
 // Dropdown — real options normal, dummy options greyed out
@@ -17,12 +28,16 @@ export function Dropdown({ label, value, options, onChange, placeholder = 'All',
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
+  const selectedLabel = value
+    ? (options.find(opt => (opt.value ?? opt) === value)?.label ?? value)
+    : '';
+
   return (
     <div className="fb-field" ref={ref}>
       <label className="fb-label">{label}</label>
       <div className={`fb-select ${open ? 'open' : ''}`} onClick={() => setOpen(o => !o)}>
         <span className={!value ? 'fb-placeholder' : 'fb-value'}>
-          {loading ? 'Loading…' : (value || placeholder)}
+          {loading ? 'Loading…' : (selectedLabel || placeholder)}
         </span>
         <svg className={`fb-chevron ${open ? 'rotated' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <polyline points="6 9 12 15 18 9"/>
@@ -108,8 +123,8 @@ export function SummaryFilterBar({ onApply }) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const { billers, operators, services, adNetworks, loading, cascade } = useFilterOptions();
-  const [dateRange, setDateRange] = useState(todayRange);
-  const [f, setF] = useState({ startDate: today, endDate: today, billerName: '', operatorId: '', serviceName: '', adnetwork: '' });
+  const [dateRange, setDateRange] = useState(summaryDateRange);
+  const [f, setF] = useState(DEFAULT_SUMMARY_FILTERS);
 
   const set = (k) => (v) => {
     setF(p => {
@@ -133,11 +148,10 @@ export function SummaryFilterBar({ onApply }) {
   };
 
   const handleReset = () => {
-    setDateRange(todayRange);
+    setDateRange(summaryDateRange);
     cascade('', '');
-    const reset = { startDate: today, endDate: today, billerName: '', operatorId: '', serviceName: '', adnetwork: '' };
-    setF(reset);
-    onApply(reset);
+    setF(DEFAULT_SUMMARY_FILTERS);
+    onApply(DEFAULT_SUMMARY_FILTERS);
   };
 
   return (
