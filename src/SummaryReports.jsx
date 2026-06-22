@@ -1,10 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { eachDayOfInterval, format, parseISO } from 'date-fns';
 import { fetchSummary, fetchHourlyReport } from './api';
 import { SummaryFilterBar, DEFAULT_SUMMARY_FILTERS } from './FilterPanel';
 import Pagination from './Pagination';
 import SkeletonRows from './SkeletonRows';
 import NullCell from './NullCell';
 import * as XLSX from 'xlsx';
+
+const DAYS_PER_PAGE = 7;
 
 
 const S2S_COLS = [
@@ -225,6 +228,44 @@ function aggregateRows(apiRows, dateLabel, hourlyMap) {
   });
 }
 
+function getDaysInRange(startDate, endDate) {
+  return eachDayOfInterval({
+    start: parseISO(startDate),
+    end: parseISO(endDate),
+  })
+    .map(d => format(d, 'yyyy-MM-dd'))
+    .reverse();
+}
+
+function buildDayRows(day, apiRows, hourlyForDay, filters) {
+  const coveredKeys = new Set(apiRows.map(r => `${r.billerName || ''}__${r.operatorId || ''}`));
+  const hourlyMap   = buildHourlyMap(hourlyForDay);
+  const aggregated  = aggregateRows(apiRows, day, hourlyMap);
+  const hourlyOnly  = buildHourlyOnlyRows(hourlyForDay, day, filters, coveredKeys);
+  return [...aggregated, ...hourlyOnly];
+}
+
+function SummaryTable({ cols, rows }) {
+  return (
+    <table className="ct-table">
+      <thead>
+        <tr>{cols.map(c => <th key={c.key} className={`ct-th${c.na ? ' ct-th-dummy' : ''}`}>{c.label}</th>)}</tr>
+      </thead>
+      <tbody>
+        {rows.map((row, i) => (
+          <tr key={i}>
+            {cols.map(c => (
+              <td key={c.key} className={`ct-td${c.na ? ' ct-td-dummy' : ''}`}>
+                <Cell col={c} row={row} />
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 function CRCell({ v }) {
   if (v == null) return <NullCell />;
   const n = parseFloat(v);
@@ -247,54 +288,55 @@ function Cell({ col, row }) {
 }
 
 export default function SummaryReports() {
-  const [subTab,  setSubTab]  = useState('s2s');
-  const [filters, setFilters] = useState(DEFAULT_SUMMARY_FILTERS);
-  const [rows,    setRows]    = useState([]);
-  const [total,   setTotal]   = useState(0);
-  const [page,    setPage]    = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState('');
-  const SIZE = 15;
+  const [subTab,      setSubTab]      = useState('s2s');
+  const [filters,     setFilters]     = useState(DEFAULT_SUMMARY_FILTERS);
+  const [dateGroups,  setDateGroups]  = useState([]);
+  const [page,        setPage]        = useState(1);
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState('');
 
-  const filtersRef = useRef(filters);
-
-  const loadData = (f, p) => {
-    filtersRef.current = f;
+  const loadData = (f) => {
     setLoading(true); setError('');
-    const dateLabel = `${f.startDate}${f.endDate !== f.startDate ? ` \u2192 ${f.endDate}` : ''}`;
-    Promise.all([
-      fetchSummary({ ...f, page: p, size: SIZE }),
-      fetchHourlyReport(f.startDate, f.endDate).catch(() => []),
-    ])
-      .then(([res, hourlyData]) => {
-        const apiRows      = res.data || [];
-        const coveredKeys  = new Set(apiRows.map(r => `${r.billerName || ''}__${r.operatorId || ''}`));
-        const hourlyMap    = buildHourlyMap(hourlyData);
-        const aggregated   = aggregateRows(apiRows, dateLabel, hourlyMap);
-        const hourlyOnly   = buildHourlyOnlyRows(hourlyData, dateLabel, f, coveredKeys);
-        const allRows      = [...aggregated, ...hourlyOnly];
-        setRows(allRows);
-        setTotal(Math.max(res.total || 0, allRows.length));
-      })
+    const days = getDaysInRange(f.startDate, f.endDate);
+
+    fetchHourlyReport(f.startDate, f.endDate)
+      .catch(() => [])
+      .then(hourlyData =>
+        Promise.all(days.map(day => {
+          const hourlyForDay = (hourlyData || []).filter(c => c.date === day);
+          return fetchSummary({ ...f, startDate: day, endDate: day, page: 1, size: 500 })
+            .then(res => ({
+              date: day,
+              rows: buildDayRows(day, res.data || [], hourlyForDay, f),
+            }))
+            .catch(() => ({ date: day, rows: buildDayRows(day, [], hourlyForDay, f) }));
+        }))
+      )
+      .then(groups => setDateGroups(groups.filter(g => g.rows.length > 0)))
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadData(filters, 1); }, []); // eslint-disable-line
+  useEffect(() => { loadData(filters); }, []); // eslint-disable-line
 
-  const handleApply = (f) => { setFilters(f); setPage(1); setRows([]); setTotal(0); loadData(f, 1); };
-  const handlePageChange = (p) => { setPage(p); loadData(filtersRef.current, p); };
+  const handleApply = (f) => { setFilters(f); setPage(1); setDateGroups([]); loadData(f); };
+  const handlePageChange = (p) => setPage(p);
 
   const cols = subTab === 's2s' ? S2S_COLS : API_COLS;
+  const displayCols = cols.filter(c => c.key !== 'date');
   const dateLabel = `${filters.startDate}${filters.endDate !== filters.startDate ? ` → ${filters.endDate}` : ''}`;
+  const visibleGroups = dateGroups.slice((page - 1) * DAYS_PER_PAGE, page * DAYS_PER_PAGE);
+  const recordCount = dateGroups.reduce((n, g) => n + g.rows.length, 0);
 
   const exportExcel = () => {
-    if (!rows.length) return;
-    const data = rows.map(r => Object.fromEntries(cols.map(c => [c.label, c.na ? 'N/A' : (r[c.key] ?? '')])));
-    const ws = XLSX.utils.json_to_sheet(data);
-    ws['!cols'] = cols.map(() => ({ wch: 16 }));
+    if (!dateGroups.length) return;
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, subTab === 's2s' ? 'S2S Report' : 'API Report');
+    dateGroups.forEach(g => {
+      const data = g.rows.map(r => Object.fromEntries(cols.map(c => [c.label, c.na ? 'N/A' : (r[c.key] ?? '')])));
+      const ws = XLSX.utils.json_to_sheet(data);
+      ws['!cols'] = cols.map(() => ({ wch: 16 }));
+      XLSX.utils.book_append_sheet(wb, ws, g.date);
+    });
     XLSX.writeFile(wb, `summary_${subTab}_${filters.startDate}_${filters.endDate}.xlsx`);
   };
 
@@ -321,42 +363,41 @@ export default function SummaryReports() {
             </div>
           </div>
           <div className="ct-header-right">
-            {!loading && rows.length > 0 && <span className="record-count">{rows.length} records</span>}
-            {!loading && rows.length > 0 && <button className="ct-export-btn" onClick={exportExcel}>⬇ Export Excel</button>}
+            {!loading && dateGroups.length > 0 && (
+              <span className="record-count">{dateGroups.length} days · {recordCount} records</span>
+            )}
+            {!loading && dateGroups.length > 0 && (
+              <button className="ct-export-btn" onClick={exportExcel}>⬇ Export Excel</button>
+            )}
           </div>
         </div>
 
-        <div className="table-wrap">
-          <table className="ct-table">
-            <thead>
-              <tr>{cols.map(c => <th key={c.key} className={`ct-th${c.na ? ' ct-th-dummy' : ''}`}>{c.label}</th>)}</tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <SkeletonRows cols={cols.length} rows={5} />
-              ) : rows.length === 0 ? (
-                <tr><td colSpan={cols.length}>
-                  <div className="no-data-inner" style={{ padding: '3rem' }}>
-                    <div className="no-data-icon">📭</div>
-                    <div className="no-data-text">No data found</div>
-                    <div className="no-data-sub">No records for {dateLabel}</div>
-                  </div>
-                </td></tr>
-              ) : (
-                rows.map((row, i) => (
-                  <tr key={i}>
-                    {cols.map(c => (
-                      <td key={c.key} className={`ct-td${c.na ? ' ct-td-dummy' : ''}`}>
-                        <Cell col={c} row={row} />
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        <Pagination page={page} total={total} size={SIZE} onChange={handlePageChange} />
+        {loading ? (
+          <div className="table-wrap">
+            <table className="ct-table">
+              <tbody><SkeletonRows cols={displayCols.length} rows={5} /></tbody>
+            </table>
+          </div>
+        ) : dateGroups.length === 0 ? (
+          <div className="no-data-inner" style={{ padding: '3rem' }}>
+            <div className="no-data-icon">📭</div>
+            <div className="no-data-text">No data found</div>
+            <div className="no-data-sub">No records for {dateLabel}</div>
+          </div>
+        ) : (
+          visibleGroups.map(group => (
+            <div key={group.date} className="sr-date-block">
+              <div className="sr-date-header">
+                <h3>📅 {group.date}</h3>
+                <span className="sr-date-count">{group.rows.length} records</span>
+              </div>
+              <div className="table-wrap">
+                <SummaryTable cols={displayCols} rows={group.rows} />
+              </div>
+            </div>
+          ))
+        )}
+        <Pagination page={page} total={dateGroups.length} size={DAYS_PER_PAGE} onChange={handlePageChange} />
       </div>
     </div>
   );

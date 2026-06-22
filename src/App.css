@@ -1198,6 +1198,32 @@ tbody tr:hover .ct-td-dummy { background: #f1f5f9 !important; }
 
 .ct-date { font-weight: 600; color: var(--primary-dark); font-size: .78rem; }
 
+/* Summary Reports — per-date tables */
+.sr-date-block {
+  border-top: 1px solid var(--border);
+}
+.sr-date-block:first-of-type {
+  border-top: none;
+}
+.sr-date-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .7rem 1.25rem;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+.sr-date-header h3 {
+  font-size: .84rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+.sr-date-count {
+  font-size: .72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
 /* ═══════════════════════════════════════
    HOURLY REPORT
 ═══════════════════════════════════════ */
