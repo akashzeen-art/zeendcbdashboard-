@@ -1,3 +1,5 @@
+import { updateCutValue } from './utils';
+
 const BASE_URL = '/vaspay';
 const POSTBACK_URL = '/postbacks';
 
@@ -61,24 +63,7 @@ export async function fetchHourlyReport(startDate, endDate) {
   return (Array.isArray(data) ? data : []).filter(c => c.type === 'vas');
 }
 
-// Update CUT — GET https://postback.v1mobi.com/optimize?id=...&cut=...
+// Update CUT — POST /postbacks/updateCut (CUT is stored server-side; not applied in CR/STP math)
 export async function updateCut(campaignId, links, cut) {
-  let id = campaignId;
-
-  if (links) {
-    const match = String(links).match(/[?&]id=([^&]+)/);
-    if (match) id = match[1];
-  }
-
-  const url = `https://postback.v1mobi.com/optimize?id=${id}&cut=${cut}`;
-  console.log('[CUT] Calling:', url);
-
-  try {
-    await fetch(url, { mode: 'no-cors' });
-  } catch {
-    // network error — ignore, fire-and-forget
-  }
-  // Always return success — server responds with 504 "Outdated Optimize Dep"
-  // which means the request was received and processed
-  return { success: true, id, cut };
+  return updateCutValue(campaignId, links, cut);
 }

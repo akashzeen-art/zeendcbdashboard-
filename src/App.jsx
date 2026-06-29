@@ -52,51 +52,46 @@ export default function App() {
   if (!user) return <Login onLogin={handleLogin} />;
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <div className="header-left">
-          <div className="header-logo">📊</div>
-          <div className="header-title">
-            <h1>VAS Dashboard</h1>
-            <span>Zeend DCB Reporting Portal</span>
-          </div>
-        </div>
-        <div className="header-right">
-          <div className="live-dot">Live</div>
-          <div className="header-badge">DCB Platform</div>
-          <div className="header-user">
-            <div className="header-avatar">{user.name[0]}</div>
-            <div className="header-user-info">
-              <span className="header-user-name">{user.name}</span>
-              <span className="header-user-email">{user.email}</span>
+    <div className="app demo-app">
+      <nav className="demo-navbar">
+        <div className="demo-navbar-brand">MyDashboard</div>
+        <ul className="demo-navbar-nav">
+          <li><span className="demo-nav-user">VAS Reporting</span></li>
+          <li>
+            <div className="demo-nav-user-block">
+              <span className="demo-nav-avatar">{user.name[0]}</span>
+              <span>{user.name}</span>
             </div>
+          </li>
+          <li>
+            <button type="button" className="demo-nav-link" onClick={handleLogout}>Log Out</button>
+          </li>
+        </ul>
+      </nav>
+
+      <div className="demo-page-wrapper">
+        <main className="app-main demo-main">
+          <div className="main-tabs demo-main-tabs">
+            {TABS.map(t => (
+              <button
+                key={t.id}
+                type="button"
+                className={`main-tab ${activeTab === t.id ? 'active' : ''}`}
+                onClick={() => setActiveTab(t.id)}
+              >
+                <span className="main-tab-icon">{t.icon}</span>
+                {t.label}
+              </button>
+            ))}
           </div>
-          <button className="btn-logout" onClick={handleLogout}>⏻ Logout</button>
-        </div>
-      </header>
 
-      <main className="app-main">
-        {/* Main tab navigation */}
-        <div className="main-tabs">
-          {TABS.map(t => (
-            <button
-              key={t.id}
-              className={`main-tab ${activeTab === t.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(t.id)}
-            >
-              <span className="main-tab-icon">{t.icon}</span>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab content — each manages its own filters */}
-        {activeTab === 'summary'    && <SummaryReports />}
-        {activeTab === 'hourly'     && <HourlyReport />}
-        {activeTab === 'pricepoint' && <PricePointReport />}
-        {activeTab === 'publisher'  && <PublisherReport />}
-        {activeTab === 'cutback'    && <Cutback />}
-      </main>
+          {activeTab === 'summary'    && <SummaryReports />}
+          {activeTab === 'hourly'     && <HourlyReport />}
+          {activeTab === 'pricepoint' && <PricePointReport />}
+          {activeTab === 'publisher'  && <PublisherReport />}
+          {activeTab === 'cutback'    && <Cutback />}
+        </main>
+      </div>
     </div>
   );
 }

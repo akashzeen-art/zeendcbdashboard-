@@ -119,8 +119,7 @@ export function useFilterOptions() {
   return { billers, operators, services, adNetworks, loading, cascade };
 }
 
-export function SummaryFilterBar({ onApply }) {
-  const [panelOpen, setPanelOpen] = useState(true);
+export function SummaryFilterBar({ onApply, onExport, exportDisabled = true }) {
   const [submitting, setSubmitting] = useState(false);
   const { billers, operators, services, adNetworks, loading, cascade } = useFilterOptions();
   const [dateRange, setDateRange] = useState(summaryDateRange);
@@ -155,43 +154,56 @@ export function SummaryFilterBar({ onApply }) {
   };
 
   return (
-    <div className="filter-panel">
-      <div className="filter-panel-header" onClick={() => setPanelOpen(o => !o)}>
-        <div className="filter-panel-header-left"><div className="filter-icon">🔍</div>Filters &amp; Date Range</div>
-        <span className={`filter-toggle-icon ${panelOpen ? 'open' : ''}`}>▼</span>
-      </div>
-      {panelOpen && (
-        <form onSubmit={handleSubmit}>
-          <div className="filter-body">
-            <div className="filter-group fb-date-span">
-              <label className="fb-label">Date Range <span className="req">*</span></label>
-              <DateRangePicker value={dateRange} onChange={handleDate} />
-            </div>
-            <Dropdown label="Biller" value={f.billerName} options={billers} onChange={set('billerName')} placeholder="All Billers" loading={loading} />
-            <Dropdown label="Geo / Operator" value={f.operatorId} options={operators} onChange={set('operatorId')} placeholder="All Operators" loading={loading} />
-            <Dropdown label="Service / Product" value={f.serviceName} options={services} onChange={set('serviceName')} placeholder="All Services" loading={loading} />
-            <Dropdown
-              label="Ad Network"
-              value={f.adnetwork}
-              options={adNetworks}
-              onChange={set('adnetwork')}
-              placeholder="All Networks"
-              loading={loading}
-            />
-            <div className="filter-actions">
-              <button type="submit" className="btn-apply" disabled={submitting}>{submitting ? '⏳ Applying…' : '🔍 Apply'}</button>
-              <button type="button" className="btn-reset" onClick={handleReset}>↺ Reset</button>
+    <div className="demo-filter-panel">
+      <form onSubmit={handleSubmit}>
+        <div className="demo-filter-grid">
+          <div className="demo-field">
+            <label className="demo-label">Select Dates <span className="req">*</span></label>
+            <DateRangePicker value={dateRange} onChange={handleDate} />
+          </div>
+          <div className="demo-field">
+            <Dropdown label="Please select Operator" value={f.operatorId} options={operators} onChange={set('operatorId')} placeholder="-- Select Operator --" loading={loading} />
+          </div>
+          <div className="demo-field">
+            <Dropdown label="Please select product" value={f.serviceName} options={services} onChange={set('serviceName')} placeholder="-- All Products --" loading={loading} />
+          </div>
+          <div className="demo-field">
+            <Dropdown label="Please select Network" value={f.adnetwork} options={adNetworks} onChange={set('adnetwork')} placeholder="Please Select" loading={loading} />
+          </div>
+          <div className="demo-field">
+            <Dropdown label="Please Select Aggregator" value={f.billerName} options={billers} onChange={set('billerName')} placeholder="Please Select" loading={loading} />
+          </div>
+          <div className="demo-field demo-field-actions">
+            <label className="demo-label">&nbsp;</label>
+            <div className="demo-action-row">
+              <button type="submit" className="demo-btn demo-btn-primary" disabled={submitting}>
+                {submitting ? 'Loading…' : 'Submit'}
+              </button>
+              <button type="button" className="demo-btn demo-btn-secondary" onClick={handleReset}>Reset</button>
             </div>
           </div>
-        </form>
-      )}
+          {onExport && (
+            <div className="demo-field demo-field-actions">
+              <label className="demo-label">&nbsp;</label>
+              <button
+                type="button"
+                className="demo-btn demo-btn-primary"
+                onClick={onExport}
+                disabled={exportDisabled}
+              >
+                Csv Download
+              </button>
+            </div>
+          )}
+        </div>
+      </form>
     </div>
   );
 }
 
 // Hourly Report filter bar — date range + campaign name
-export function HourlyFilterBar({ onApply }) {
-  const [panelOpen, setPanelOpen] = useState(true);
+export function HourlyFilterBar({ onApply, onExport, exportDisabled = true }) {
+  const [submitting, setSubmitting] = useState(false);
   const [dateRange, setDateRange] = useState({ s: startOfDay(new Date()), e: endOfDay(new Date()) });
   const [f, setF] = useState({ startDate: today, endDate: today, campaignName: '' });
   const [campaigns, setCampaigns] = useState([]);
@@ -221,41 +233,65 @@ export function HourlyFilterBar({ onApply }) {
     fetchCampaigns(startDate, endDate);
   };
 
-  // Load campaigns for today on mount
   useEffect(() => { fetchCampaigns(today, today); }, []);
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    onApply({ ...f });
+    setTimeout(() => setSubmitting(false), 500);
+  };
+
+  const handleReset = () => {
+    const reset = { startDate: today, endDate: today, campaignName: '' };
+    setF(reset);
+    setDateRange({ s: startOfDay(new Date()), e: endOfDay(new Date()) });
+    fetchCampaigns(today, today);
+    onApply(reset);
+  };
+
   return (
-    <div className="filter-panel">
-      <div className="filter-panel-header" onClick={() => setPanelOpen(o => !o)}>
-        <div className="filter-panel-header-left"><div className="filter-icon">🔍</div>Date Range</div>
-        <span className={`filter-toggle-icon ${panelOpen ? 'open' : ''}`}>▼</span>
-      </div>
-      {panelOpen && (
-        <form onSubmit={(e) => { e.preventDefault(); onApply(f); }}>
-          <div className="filter-body">
-            <div className="filter-group fb-date-span">
-              <label className="fb-label">Date Range <span className="req">*</span></label>
-              <DateRangePicker value={dateRange} onChange={handleDate} />
-            </div>
+    <div className="demo-filter-panel">
+      <form onSubmit={handleSubmit}>
+        <div className="demo-filter-grid">
+          <div className="demo-field">
+            <label className="demo-label">Select Dates <span className="req">*</span></label>
+            <DateRangePicker value={dateRange} onChange={handleDate} />
+          </div>
+          <div className="demo-field">
             <Dropdown
-              label="Campaign Name"
+              label="Please select Campaign"
               value={f.campaignName}
               options={campaigns}
               onChange={v => setF(p => ({ ...p, campaignName: v }))}
-              placeholder="All Campaigns"
+              placeholder="-- All Campaigns --"
               loading={loadingCamps}
             />
-            <div className="filter-actions">
-              <button type="submit" className="btn-apply">🔍 Apply</button>
-              <button type="button" className="btn-reset" onClick={() => {
-                setF({ startDate: today, endDate: today, campaignName: '' });
-                setDateRange({ s: startOfDay(new Date()), e: endOfDay(new Date()) });
-                fetchCampaigns(today, today);
-              }}>↺ Reset</button>
+          </div>
+          <div className="demo-field demo-field-actions">
+            <label className="demo-label">&nbsp;</label>
+            <div className="demo-action-row">
+              <button type="submit" className="demo-btn demo-btn-primary" disabled={submitting}>
+                {submitting ? 'Loading…' : 'Submit'}
+              </button>
+              <button type="button" className="demo-btn demo-btn-secondary" onClick={handleReset}>Reset</button>
             </div>
           </div>
-        </form>
-      )}
+          {onExport && (
+            <div className="demo-field demo-field-actions">
+              <label className="demo-label">&nbsp;</label>
+              <button
+                type="button"
+                className="demo-btn demo-btn-primary"
+                onClick={onExport}
+                disabled={exportDisabled}
+              >
+                Csv Download
+              </button>
+            </div>
+          )}
+        </div>
+      </form>
     </div>
   );
 }

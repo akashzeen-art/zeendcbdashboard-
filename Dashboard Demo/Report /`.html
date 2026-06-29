@@ -1,0 +1,1790 @@
+<!DOCTYPE html>
+<!-- saved from url=(0062)http://143.198.213.74/report/admin/admin/Subscriptiondashboard -->
+<html lang="en" ng-app="myApp" class="ng-scope"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style>body {transition: opacity ease-in 0.2s; } 
+body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relative; } 
+</style><style type="text/css">@charset "UTF-8";[ng\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak,.ng-hide:not(.ng-hide-animate){display:none !important;}ng\:form{display:block;}.ng-animate-shim{visibility:hidden;}.ng-anchor{position:absolute;}</style>
+    <script>
+        var CI = "/report/"
+        var CI_CLIENT = "/report/client/client/"
+        var CI_ADMIN = "/report/admin/admin/"
+        //alert(CI);
+    </script>
+    
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>MyDashboard</title>
+    <link rel="stylesheet" href="./`_files/bootstrap.min.css"><link rel="stylesheet" href="./`_files/sb-admin.css"><link rel="stylesheet" href="./`_files/morris.css"><link rel="stylesheet" href="./`_files/custom.css">     <style type="text/css">
+        #page-wrapper tr td {
+		white-space: nowrap;
+		}
+		.h1, .h1, h2, .h2, h3, .h3 {
+		margin-top: 5px;
+		margin-bottom: 5px;
+		}
+		.table>thead>tr>th, .table>tbody>tr>th, .table>tfoot>tr>th, .table>thead>tr>td, .table>tbody>tr>td, .table>tfoot>tr>td {
+		padding: 4px;
+		line-height: 1.42857143;
+		vertical-align: top;
+		border: 1px solid black;
+		border-top: 1px solid black;
+		}
+		.table-bordered {
+		border: 1px solid black;
+		}
+
+    </style>
+</head>
+<body>
+        <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                    <span class="sr-only"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="http://143.198.213.74/report/admin/dashboard">MyDashboard</a>
+            </div>
+            <!-- Top Menu Items -->
+            <ul class="nav navbar-right top-nav">
+                
+						<li class="dropdown">    
+                            <a href="http://143.198.213.74/report/admin/admin/Subscriptiondashboard#" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><i class="fa fa-user"></i>CMS <b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a href="http://143.198.213.74/report/admin/add_product"> Add Product</a>
+                                    <a href="http://143.198.213.74/report/admin/add_category"> Add Category</a>
+                                    <a href="http://143.198.213.74/report/admin/add_subcategory"> Add Subcategory</a>
+                                    <a href="http://143.198.213.74/report/admin/add_content">Add Content</a>
+                                    <a href="http://143.198.213.74/report/admin/add_country">Add Country</a>
+                                    <a href="http://143.198.213.74/report/admin/add_operator">Add Operator</a>
+                                    
+                                </li> 
+                                </ul>  
+                            </li>
+                             <li class="dropdown">    
+                                <a href="http://143.198.213.74/report/admin/admin/Subscriptiondashboard#" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><i class="fa fa-user"></i>Settings <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                 
+                                       
+                                        <a href="http://143.198.213.74/report/campaign-manager/route_campaign"> Route Campaign</a>
+                                        <a href="http://143.198.213.74/report/campaign-manager/add_publisher"> Add Publisher</a>
+                                        <a href="http://143.198.213.74/report/campaign-manager/add_advertiser"> Add Advertiser</a>
+                                        <a href="http://143.198.213.74/report/campaign-manager/create_campaign"> Create Normal Campaign</a>
+                                        <a href="http://143.198.213.74/report/campaign-manager/create_client"> Create CP</a>
+                                        <a href="http://143.198.213.74/report/campaign-manager/create_service"> Create Service</a>
+                                        <a href="http://143.198.213.74/report/campaign-manager/create_api_campaign"> API Campaign</a>
+                                        <a href="http://143.198.213.74/report/campaign-manager/send_to_partner_control">Send to Network</a>
+                                        <a href="http://143.198.213.74/report/campaign-manager/test_s2s">Test S2S</a>
+                                    </li> 
+                                    </ul>  
+                                </li>
+
+                    <li><a href="http://143.198.213.74/report/admin/admin/menu/index-ad"><i class="fa fa-fw fa-power-off"></i> Dashboard</a></li>
+
+				    <li><a href="http://143.198.213.74/report/admin/Reportingcontroller/signmein"><i class="fa fa-fw fa-power-off"></i> Log Out</a></li>
+            </ul>
+        </nav> 
+    <div id="page-wrapper" ng-app="myApp" ,="" ng-controller="myCtrl" class="ng-scope">
+        <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-12">
+                <form name="subsdashboarddata" id="subsdashboarddata" ng-submit="submitdashboard()" class="ng-dirty ng-valid-parse ng-valid ng-valid-required ng-submitted">
+                    <div class="col-sm-3">
+                        <div class="form-group has-success">
+                          <label for="daterange" class="control-label"> Select Dates</label>
+                    <input date-range-picker="" id="daterange" name="daterange" class="form-control date-picker ng-pristine ng-valid ng-isolate-scope ng-touched ng-not-empty ng-valid-required" type="text" ng-model="formData.date" required="" ng-change="SimplePickerChange();">
+                          
+                        </div>          
+                    </div>
+                    
+<div class="col-sm-3">
+    <div class="form-group has-success">
+        <label class="control-label" for="inputSuccess">Please select Operator</label>
+        <select class="form-control ng-not-empty ng-dirty ng-valid-parse ng-valid ng-valid-required ng-touched" name="operatorname" ng-model="formData.operatorname" ng-change="loadProducts(formData.operatorname)" required="">
+            <option value="">-- Select Operator --</option>
+            <option value="1">IQ-Zain</option><option value="2">SD-Sudani</option><option value="3">KE-Safaricom</option><option value="4">Slovakia-ALL</option><option value="5">France-ALL</option><option value="6">Poland-ALL</option><option value="7">TH-AIS</option><option value="8">BF-Orange</option><option value="9">IQ-Korek</option><option value="10">CZECH-ALL</option><option value="11">IQ-Asiacell</option><option value="12">SD-MTN</option><option value="13">TH-TrueMove</option><option value="14">Luxembourg-ALL</option><option value="15">CIV-MTN</option><option value="16">GH-AirtelTigo</option><option value="17">TZ-Halotel</option>        </select>
+    </div>
+</div>
+
+<div class="col-sm-3">
+    <div class="form-group has-success">
+        <label class="control-label" for="inputSuccess">Please select product</label>
+        <select class="form-control ng-valid ng-not-empty ng-dirty ng-valid-parse ng-touched" name="pid" ng-model="formData.pid" ng-disabled="!productList || productList.length == 0">
+            <option value="">-- All Products --</option>
+            <!-- ngRepeat: p in productList --><option ng-repeat="p in productList" value="1" class="ng-binding ng-scope">Arabic FunTV</option><!-- end ngRepeat: p in productList --><option ng-repeat="p in productList" value="2" class="ng-binding ng-scope">SelfieStar</option><!-- end ngRepeat: p in productList -->
+        </select>
+    </div>
+</div>
+
+
+                    <div class="col-sm-3">
+                            <div class="form-group has-success">
+                                <label class="control-label" for="inputSuccess">Please select Network</label>
+                                    <select name="network" ng-model="formData.network" id="network" class="form-control ng-valid ng-dirty ng-valid-parse ng-touched ng-empty"><option value="">Please Select</option><option value="CM1">Common</option><option value="GGL1">Google</option><option value="TC1">Traffic Company</option><option value="OM1">Olimob</option><option value="AFT1">Affilitex</option><option value="MJ1">Mojicom</option><option value="ALP1">Alpas</option><option value="MP1">Mobplus</option><option value="MK1">Mobikok</option><option value="ZD1">Zeen Digital</option><option value="NM1">Numero</option><option value="TMB1">Tmob</option><option value="MI1">Mobidea</option><option value="GG1">GoldenGoose</option><option value="AS1">Actual Sale</option><option value="ADST1">Adsterra</option><option value="RL1">Revlinker</option><option value="ADZ1">Adzcorner</option><option value="SVM1">SVMobi</option><option value="TLF1">Telefuture</option><option value="CRPM1">Cryptmedia</option><option value="OUT1">Outwrix</option><option value="DIT1">DITL</option><option value="GGL2">Google 2</option><option value="GGEC1">Google EC</option><option value="ADZM1">Adzoomobi</option><option value="DC1">Dflyclick</option><option value="DL1">DIGIJET LIMITED</option><option value="TCSM1">Techstore Media</option><option value="CS1">Clickstream</option><option value="AM1">adwynk</option><option value="GA1">Game of Ads</option><option value="AL1">Afflink</option><option value="TS">Tarsan</option><option value="PL1">Propellerads</option><option value="BT1">Beatzwave</option><option value="MM1">mobmedia</option><option value="flashmobi">flashmobi</option><option value="BTH1">Bothads</option><option value="AGMI">AngelMedia</option><option value="SNBM1">Snowball Media</option><option value="MH1">Mobihits</option><option value="CRM2">Crypt Media 2</option><option value="GR1">Gorilla</option><option value="LD1">Light Digital</option><option value="SC1">SS Pub</option><option value="Vertads">Vertads</option><option value="MBL1">Mobilix</option></select>                            </div>
+                    </div>
+                   
+                        
+						   <div class="col-sm-3">
+                            <div class="form-group has-success">
+                                <label class="control-label" for="inputSuccess">Please Select Aggregator</label>
+                                    <select name="name" ng-model="formData.name" id="name" class="form-control ng-pristine ng-untouched ng-valid ng-empty"><option value="">Please Select</option><option value="1">MediaWorld</option><option value="2">SPay</option><option value="3">WeiserStamm</option><option value="4">DotJo</option><option value="5">NTH</option><option value="6">AIS Direct</option><option value="7">Eklectic</option><option value="8">Trendy</option><option value="9">Beecell</option><option value="10">Xceed</option><option value="11">Iraqcom</option><option value="12">TrueMove - WS</option><option value="13">MPulse</option><option value="14">Telenity</option><option value="15">U2opia</option></select>                            </div>
+                        </div>                        
+                        <div class="col-sm-3">
+                            <div class="form-group has-success">
+                                <label class="control-label" for="inputSuccess">Please select country</label>
+                                    <select name="countryname" ng-model="formData.countryname" id="countryname" class="form-control ng-pristine ng-untouched ng-valid ng-empty"><option value="">Please Select</option><option value="1">Iraq</option><option value="2">Sudan</option><option value="3">Kenya</option><option value="4">Slovakia</option><option value="5">France</option><option value="6">Poland</option><option value="7">Thailand</option><option value="8">Burkina Faso</option><option value="9">Czech Republic</option><option value="10">Luxembourg</option><option value="11">Ivory Coast</option><option value="12">Ghana</option><option value="13">Tanzania</option></select>                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="form-group has-success">
+                                <label class="control-label" for="inputSuccess">Pubwise Report</label>
+                                <select name="pubwise_report" id="pubwise_report" class="form-control ng-valid ng-not-empty ng-dirty ng-valid-parse ng-touched" ng-model="formData.pubwise_report">
+                                        <option value="0" selected="">All</option>
+                                        <option value="1">Pubwise Report</option>
+                                       
+                                </select>
+                            </div>
+                        </div>
+                     <div class="col-sm-3">
+                                <div class="form-group has-success">
+                                      <input type="submit" class="btn btn-info" name="submit" id="dashboard" value="Submit">
+
+                                </div>
+                        </div>     
+                </form>
+                <form name="csvdashboarddata" id="csvdashboarddata" action="http://143.198.213.74/report/download.php" class="ng-pristine ng-valid">
+                        <div class="col-sm-3">
+                                <div class="form-group has-success">
+                                        <input type="hidden" name="path" value="sub">
+                                      <input type="submit" class="btn btn-info" name="csvsubmitdashboard" id="csvsubmitdashboard" value="Csv Download">
+                                </div>
+                         </div>
+                </form> 
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                    <table class="table table-bordered table-hover table-fixed">
+                      <thead>            
+                        <tr class="danger">
+                             <!--<th>Date</th><th>Act</th><th>P2A</th><th>Deact</th><th>20 Deact</th><th>ACT Park</th><th>REN Park</th><th>Renew</th><th>Active Subs</th><th>ACT Revenue</th><th>P2A Revenue</th><th>Renewal Revenue</th><th>Total Revenue</th><th>Exp Invoice Value (Rs)</th><th>Spends </th><th>P/L</th><th>Sent To P</th>-->
+							 
+							 <th>Date</th><th>Clicks</th><th>Network</th><th>SendPin</th><th>Uniq SendPin</th><th>VerPin</th><th>Uniq VerPin</th><th>Suces VerPin</th><th>ACT</th><th>P2A</th><th>PARK</th><th>Dct</th><th>SDD</th><th>RENEW</th><th>Act Rev</th><th>Renew Rev</th><th>Total Rev</th><th>Total Rev USD</th><th>Sent To Pub</th><th>Spend</th><th>Camp CR</th><th>Pub CR</th><!--<th>Arpu</th><th>LTV</th>-->
+							 
+                         </tr>
+                    </thead>
+                    <tbody>
+                       <!-- ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-01</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">12</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-01</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">36</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">13</td>
+                            <td class="ng-binding">2</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">51</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">8640.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">12240.00</td>
+                            <td class="ng-binding">20880.00</td>
+                            <td class="ng-binding">15.03</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-02</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">14</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-02</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">27</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">12</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">57</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">6480.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">13680.00</td>
+                            <td class="ng-binding">20160.00</td>
+                            <td class="ng-binding">14.52</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-03</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">9</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-03</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">26</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">17</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">54</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">6240.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">12960.00</td>
+                            <td class="ng-binding">19200.00</td>
+                            <td class="ng-binding">13.82</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-03</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Traffic Company</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">1</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-04</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">6</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-04</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">24</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">15</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">51</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">5760.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">12240.00</td>
+                            <td class="ng-binding">18000.00</td>
+                            <td class="ng-binding">12.96</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-05</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">3</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-05</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">14</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">15</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">49</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">3360.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">11760.00</td>
+                            <td class="ng-binding">15120.00</td>
+                            <td class="ng-binding">10.89</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-06</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">9</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-06</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">27</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">12</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">38</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">6480.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">9120.00</td>
+                            <td class="ng-binding">15600.00</td>
+                            <td class="ng-binding">11.23</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-07</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">6</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-07</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">27</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">7</td>
+                            <td class="ng-binding">2</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">49</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">6480.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">11760.00</td>
+                            <td class="ng-binding">18240.00</td>
+                            <td class="ng-binding">13.13</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-08</td>
+                            <td class="ng-binding">2</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">13</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-08</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">25</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">20</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">50</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">6000.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">12000.00</td>
+                            <td class="ng-binding">18000.00</td>
+                            <td class="ng-binding">12.96</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-09</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">6</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-09</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">19</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">6</td>
+                            <td class="ng-binding">1</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">40</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">4560.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">9600.00</td>
+                            <td class="ng-binding">14160.00</td>
+                            <td class="ng-binding">10.20</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-10</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">22</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-10</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">28</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">14</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">37</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">6720.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">8880.00</td>
+                            <td class="ng-binding">15600.00</td>
+                            <td class="ng-binding">11.23</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-11</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">6</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-11</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">30</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">9</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">41</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">7200.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">9840.00</td>
+                            <td class="ng-binding">17040.00</td>
+                            <td class="ng-binding">12.27</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-12</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">1</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-12</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">20</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">11</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">49</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">4800.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">11760.00</td>
+                            <td class="ng-binding">16560.00</td>
+                            <td class="ng-binding">11.92</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-13</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">1</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-13</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">20</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">9</td>
+                            <td class="ng-binding">1</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">39</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">4800.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">9360.00</td>
+                            <td class="ng-binding">14160.00</td>
+                            <td class="ng-binding">10.20</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-14</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">2</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-14</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">23</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">9</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">41</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">5520.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">9840.00</td>
+                            <td class="ng-binding">15360.00</td>
+                            <td class="ng-binding">11.06</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-15</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">9</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-15</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">32</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">12</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">33</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">7680.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">7920.00</td>
+                            <td class="ng-binding">15600.00</td>
+                            <td class="ng-binding">11.23</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-16</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">2</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-16</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">21</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">12</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">42</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">5040.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">10080.00</td>
+                            <td class="ng-binding">15120.00</td>
+                            <td class="ng-binding">10.89</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-16</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Traffic Company</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">1</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-17</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">1</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-17</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">16</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">6</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">45</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">3840.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">10800.00</td>
+                            <td class="ng-binding">14640.00</td>
+                            <td class="ng-binding">10.54</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-18</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">4</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-18</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">18</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">4</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">39</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">4320.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">9360.00</td>
+                            <td class="ng-binding">13680.00</td>
+                            <td class="ng-binding">9.85</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-19</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">5</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-19</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">18</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">9</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">42</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">4320.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">10080.00</td>
+                            <td class="ng-binding">14400.00</td>
+                            <td class="ng-binding">10.37</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-20</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">6</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-20</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">17</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">4</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">39</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">4080.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">9360.00</td>
+                            <td class="ng-binding">13440.00</td>
+                            <td class="ng-binding">9.68</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-21</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">3</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-21</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">19</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">7</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">34</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">4560.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">8160.00</td>
+                            <td class="ng-binding">12720.00</td>
+                            <td class="ng-binding">9.16</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-22</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">14</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-22</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">20</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">9</td>
+                            <td class="ng-binding">1</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">32</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">4800.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">7680.00</td>
+                            <td class="ng-binding">12480.00</td>
+                            <td class="ng-binding">8.99</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-23</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">16</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-23</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">14</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">13</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">34</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">3360.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">8160.00</td>
+                            <td class="ng-binding">11520.00</td>
+                            <td class="ng-binding">8.29</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-24</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">Common</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">20</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">2026-06-24</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">DITL</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">7</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">0</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">0.00</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0.00</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding"></td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result --><tr ng-repeat="ans in result" class="Dataoftable ng-scope">
+                            <td class="ng-binding">Total</td>
+                            <td class="ng-binding">2</td>
+                            <td class="ng-binding"></td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">521</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">444</td>
+                            <td class="ng-binding">7</td>
+                            <!--<td>{{ans.tdeact}}</td>-->
+                            <!--<td>{{ans.rparking}}</td>-->
+                            <td class="ng-binding">986</td>
+                            <!-- <td>{{ans.subs}}</td> -->
+                            <td class="ng-binding">125040</td>
+                            <!--<td>{{ans.p2a_rev}}</td>-->
+                            <td class="ng-binding">236640</td>
+                            <td class="ng-binding">361680</td>
+                            <td class="ng-binding">260.41999999999996</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <td class="ng-binding">0</td>
+                            <!--<td>{{ans.arpu}}</td>-->
+                            <!--<td>{{ans.ltv}}</td>-->
+                            <!--<td>pl</td>->>
+                             <td>{{ans.senttopcount -- ans.senttopcount }}</td> -->
+                       </tr><!-- end ngRepeat: ans in result -->
+                    </tbody>
+                </table>  
+            </div>
+        </div>
+    </div>
+    </div>
+     <!-- /#page-wrapper -->
+
+    
+    
+    <!-- /#wrapper -->
+
+    <!-- jQuery -->
+     <script src="./`_files/angular.min.js"></script>
+     <script src="./`_files/angular-messages.min.js"></script>
+   
+    <script src="./`_files/jquery.js"></script><script src="./`_files/bootstrap.min.js"></script>    
+  <script type="text/javascript" src="./`_files/moment.min.js"></script>
+  <script type="text/javascript" src="./`_files/daterangepicker.js"></script>
+<link rel="stylesheet" type="text/css" href="./`_files/daterangepicker.css">
+<script src="./`_files/angular-daterangepicker.min.js"></script>
+
+
+
+   
+
+<script src="./`_files/app.js"></script>
+<div class="daterangepicker dropdown-menu ltr show-calendar opensright" style="top: 119px; left: 40px; right: auto; display: none;"><div class="calendar left"><div class="daterangepicker_input"><input class="input-mini form-control active" type="text" name="daterangepicker_start" value=""><i class="fa fa-calendar glyphicon glyphicon-calendar"></i><div class="calendar-time" style="display: none;"><div></div><i class="fa fa-clock-o glyphicon glyphicon-time"></i></div></div><div class="calendar-table"><table class="table-condensed"><thead><tr><th class="prev available"><i class="fa fa-chevron-left glyphicon glyphicon-chevron-left"></i></th><th colspan="5" class="month">Jun 2026</th><th></th></tr><tr><th>Su</th><th>Mo</th><th>Tu</th><th>We</th><th>Th</th><th>Fr</th><th>Sa</th></tr></thead><tbody><tr><td class="weekend off available" data-title="r0c0">31</td><td class="active start-date available" data-title="r0c1">1</td><td class="in-range available" data-title="r0c2">2</td><td class="in-range available" data-title="r0c3">3</td><td class="in-range available" data-title="r0c4">4</td><td class="in-range available" data-title="r0c5">5</td><td class="weekend in-range available" data-title="r0c6">6</td></tr><tr><td class="weekend in-range available" data-title="r1c0">7</td><td class="in-range available" data-title="r1c1">8</td><td class="in-range available" data-title="r1c2">9</td><td class="in-range available" data-title="r1c3">10</td><td class="in-range available" data-title="r1c4">11</td><td class="in-range available" data-title="r1c5">12</td><td class="weekend in-range available" data-title="r1c6">13</td></tr><tr><td class="weekend in-range available" data-title="r2c0">14</td><td class="in-range available" data-title="r2c1">15</td><td class="in-range available" data-title="r2c2">16</td><td class="in-range available" data-title="r2c3">17</td><td class="in-range available" data-title="r2c4">18</td><td class="in-range available" data-title="r2c5">19</td><td class="weekend in-range available" data-title="r2c6">20</td></tr><tr><td class="weekend in-range available" data-title="r3c0">21</td><td class="in-range available" data-title="r3c1">22</td><td class="in-range available" data-title="r3c2">23</td><td class="today active end-date in-range available" data-title="r3c3">24</td><td class="available" data-title="r3c4">25</td><td class="available" data-title="r3c5">26</td><td class="weekend available" data-title="r3c6">27</td></tr><tr><td class="weekend available" data-title="r4c0">28</td><td class="available" data-title="r4c1">29</td><td class="available" data-title="r4c2">30</td><td class="off available" data-title="r4c3">1</td><td class="off available" data-title="r4c4">2</td><td class="off available" data-title="r4c5">3</td><td class="weekend off available" data-title="r4c6">4</td></tr><tr><td class="weekend off available" data-title="r5c0">5</td><td class="off available" data-title="r5c1">6</td><td class="off available" data-title="r5c2">7</td><td class="off available" data-title="r5c3">8</td><td class="off available" data-title="r5c4">9</td><td class="off available" data-title="r5c5">10</td><td class="weekend off available" data-title="r5c6">11</td></tr></tbody></table></div></div><div class="calendar right"><div class="daterangepicker_input"><input class="input-mini form-control" type="text" name="daterangepicker_end" value=""><i class="fa fa-calendar glyphicon glyphicon-calendar"></i><div class="calendar-time" style="display: none;"><div></div><i class="fa fa-clock-o glyphicon glyphicon-time"></i></div></div><div class="calendar-table"><table class="table-condensed"><thead><tr><th></th><th colspan="5" class="month">Jul 2026</th><th class="next available"><i class="fa fa-chevron-right glyphicon glyphicon-chevron-right"></i></th></tr><tr><th>Su</th><th>Mo</th><th>Tu</th><th>We</th><th>Th</th><th>Fr</th><th>Sa</th></tr></thead><tbody><tr><td class="weekend off available" data-title="r0c0">28</td><td class="off available" data-title="r0c1">29</td><td class="off available" data-title="r0c2">30</td><td class="available" data-title="r0c3">1</td><td class="available" data-title="r0c4">2</td><td class="available" data-title="r0c5">3</td><td class="weekend available" data-title="r0c6">4</td></tr><tr><td class="weekend available" data-title="r1c0">5</td><td class="available" data-title="r1c1">6</td><td class="available" data-title="r1c2">7</td><td class="available" data-title="r1c3">8</td><td class="available" data-title="r1c4">9</td><td class="available" data-title="r1c5">10</td><td class="weekend available" data-title="r1c6">11</td></tr><tr><td class="weekend available" data-title="r2c0">12</td><td class="available" data-title="r2c1">13</td><td class="available" data-title="r2c2">14</td><td class="available" data-title="r2c3">15</td><td class="available" data-title="r2c4">16</td><td class="available" data-title="r2c5">17</td><td class="weekend available" data-title="r2c6">18</td></tr><tr><td class="weekend available" data-title="r3c0">19</td><td class="available" data-title="r3c1">20</td><td class="available" data-title="r3c2">21</td><td class="available" data-title="r3c3">22</td><td class="available" data-title="r3c4">23</td><td class="available" data-title="r3c5">24</td><td class="weekend available" data-title="r3c6">25</td></tr><tr><td class="weekend available" data-title="r4c0">26</td><td class="available" data-title="r4c1">27</td><td class="available" data-title="r4c2">28</td><td class="available" data-title="r4c3">29</td><td class="available" data-title="r4c4">30</td><td class="available" data-title="r4c5">31</td><td class="weekend off available" data-title="r4c6">1</td></tr><tr><td class="weekend off available" data-title="r5c0">2</td><td class="off available" data-title="r5c1">3</td><td class="off available" data-title="r5c2">4</td><td class="off available" data-title="r5c3">5</td><td class="off available" data-title="r5c4">6</td><td class="off available" data-title="r5c5">7</td><td class="weekend off available" data-title="r5c6">8</td></tr></tbody></table></div></div><div class="ranges"><div class="range_inputs"><button class="applyBtn btn btn-sm btn-success" type="button">Apply</button> <button class="cancelBtn btn btn-sm btn-default" type="button">Cancel</button></div></div></div><veepn-lock-screen><template shadowrootmode="open"><style>html{box-sizing:border-box;-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%;word-break:normal;tab-size:4}*,:before,:after{box-sizing:border-box;background-repeat:no-repeat}:before,:after{-webkit-text-decoration:inherit;text-decoration:inherit;vertical-align:inherit}*{margin:0;padding:0}hr{height:0;color:inherit;border:0;border-top:1px solid;overflow:visible}details,main{display:block}summary{display:list-item}small{font-size:80%}[hidden]{display:none!important}abbr[title]{border-bottom:none;-webkit-text-decoration:underline dotted;text-decoration:underline dotted}a{background-color:#0000}a:active,a:hover{outline-width:0}code,kbd,pre,samp{font-family:monospace}pre{font-size:1em}b,strong{font-weight:bolder}sub,sup{vertical-align:baseline;font-size:75%;line-height:0;position:relative}sub{bottom:-.25em}sup{top:-.5em}table{border-color:inherit;text-indent:0}iframe{border-style:none}input{border-radius:0}[type=number]::-webkit-inner-spin-button{height:auto}[type=number]::-webkit-outer-spin-button{height:auto}[type=search]{appearance:textfield;outline-offset:-2px}[type=search]::-webkit-search-decoration{appearance:none}textarea{resize:vertical;overflow:auto}button,input,optgroup,select,textarea{font:inherit;color:inherit}optgroup{font-weight:700}button{overflow:visible}button,select{text-transform:none}button,[type=button],[type=reset],[type=submit],[role=button]{cursor:pointer}button::-moz-focus-inner{border-style:none;padding:0}[type=button]::-moz-focus-inner{border-style:none;padding:0}[type=reset]::-moz-focus-inner{border-style:none;padding:0}[type=submit]::-moz-focus-inner{border-style:none;padding:0}button,html [type=button],[type=reset],[type=submit]{appearance:auto}button,input,select,textarea{background-color:#0000;border-style:none}button:-moz-focusring{outline:1px dotted buttontext}[type=button]::-moz-focus-inner{outline:1px dotted buttontext}[type=reset]::-moz-focus-inner{outline:1px dotted buttontext}[type=submit]::-moz-focus-inner{outline:1px dotted buttontext}select{appearance:none}a:focus,button:focus,input:focus,select:focus,textarea:focus{outline-width:0}select::-ms-expand{display:none}select::-ms-value{color:currentColor}legend{color:inherit;white-space:normal;border:0;max-width:100%;display:table}::-webkit-file-upload-button{appearance:auto;color:inherit;font:inherit}[disabled]{cursor:default}img{border-style:none}progress{vertical-align:baseline}[aria-busy=true]{cursor:progress}[aria-controls]{cursor:pointer}[aria-disabled=true]{cursor:default}ul,ol{list-style-type:none}figure{margin:0}@keyframes slide-in{0%{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0%)}}.gradient-blue{background:radial-gradient(106.41% 128.47% at 50.15% 128.47%,#23abff 0%,#3066ff 100%)}.gradient-green{background:radial-gradient(92.26% 118.88% at 50.15% .13%,#00c3c3 0%,#00aab3 100%)}.gradient-purple{background:radial-gradient(165.12% 115.56% at 50.15% .13%,#a15aff 0%,#00a0eb 100%)}.bg-blue{background-color:#f2f5ff}.bg-purple{background-color:#f7f0ff}.bg-green{background-color:#ebffed}.lock-screen{letter-spacing:normal;z-index:2147483638;border-radius:24px;width:327px;font-family:FigtreeVF,sans-serif;animation:.3s ease-in-out forwards slide-in;position:fixed;bottom:24px;right:24px;overflow:hidden;box-shadow:0 24px 32px #00000014}.lock-screen__content{padding:24px 24px 64px;position:relative}.lock-screen__close{opacity:.5;justify-content:center;align-items:center;width:24px;height:24px;display:flex;position:absolute;top:16px;right:16px}.lock-screen__label{color:#fff;background-color:#fff3;border-radius:50px;justify-content:center;align-items:center;gap:8px;width:fit-content;height:26px;margin:-8px auto 16px;padding-inline:16px;font-size:12px;line-height:18px;display:flex}.lock-screen__title{color:#fff;text-align:center;margin-bottom:8px;font-size:20px;font-weight:600;line-height:28px}.lock-screen__description{color:#f5f6f7;text-align:center;font-size:14px;line-height:20px}.lock-screen__description b{font-weight:600}.lock-screen__card{z-index:1;background-color:#fff;border-radius:24px;margin-top:-44px;padding:32px 20px 20px;position:relative}.lock-screen__inner{margin-bottom:24px}.lock-screen__submit{color:#fff;background-color:#f70;border-radius:12px;justify-content:center;align-items:center;gap:10px;width:100%;height:40px;margin-bottom:16px;padding-inline:16px;font-size:16px;font-weight:700;display:flex}.lock-screen__skip{color:#82829c;justify-content:center;align-items:center;margin-inline:auto;font-size:14px;line-height:20px;display:flex}.price-card{background:linear-gradient(254.14deg,#fafbff .04%,#f5f8ff 100.04%);border:1px solid #f2f2fc;border-radius:24px;padding:24px 28px}.price-card__label{color:#4a5764;text-align:center;text-transform:uppercase;margin-bottom:16px;font-size:14px;line-height:20px}.price-card__price{justify-content:center;align-items:flex-start;column-gap:2px;margin-bottom:12px;display:flex}.price-card__currency{color:#515478;font-size:18px;line-height:28px}.price-card__number{color:#14142a;text-align:center;font-size:64px;line-height:54px}.price-card__wrap{flex-direction:column;display:flex}.price-card__decimal{color:#515478;font-size:18px;font-weight:600;line-height:28px}.price-card__period{color:#515478;margin-top:-6px;font-size:14px;line-height:20px}.price-card__discount{justify-content:center;align-items:center;margin-bottom:12px;display:flex;position:relative}.price-card__discount-divider{z-index:0;background-color:#dbe2f9;width:100%;height:1px;position:absolute;top:50%;left:0;transform:translateY(-50%)}.price-card__discount-icon{z-index:1;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}.price-card__discount-text{z-index:2;color:#fff;font-size:12px;font-weight:600;line-height:18px;position:relative}.price-card__features{justify-content:center;align-items:center;column-gap:16px;display:flex}.price-card__feature{color:#222e3a;align-items:center;gap:6px;font-size:14px;line-height:20px;display:flex}.price-card__feature:before{content:"";background-color:#20df9e;border-radius:50%;flex-shrink:0;width:4px;height:4px;display:block}.features-list{grid-template-columns:repeat(3,1fr);gap:12px;display:grid}.features-list__item{flex-direction:column;align-items:center;gap:6px;display:flex}.features-list__icon{border-radius:12px;justify-content:center;align-items:center;width:52px;height:52px;display:flex}.features-list__text{color:#293a53;text-align:center;letter-spacing:-.1px;font-size:16px;line-height:24px}</style></template><style>@font-face{font-family:FigtreeVF;src:url(chrome-extension://majdfhpaihoncoakbjgbdhglocklcgno/fonts/FigtreeVF.woff2)format("woff2 supports variations"),url(chrome-extension://majdfhpaihoncoakbjgbdhglocklcgno/fonts/FigtreeVF.woff2)format("woff2-variations");font-weight:100 1000;font-display:swap}</style></veepn-lock-screen></body></html>
