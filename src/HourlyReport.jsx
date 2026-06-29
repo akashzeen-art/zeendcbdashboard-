@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { fetchHourlyReport, updateCut } from './api';
-import { HourlyFilterBar } from './FilterPanel';
+import { HourlyFilterBar, DEFAULT_HOURLY_FILTERS } from './FilterPanel';
 import SkeletonRows from './SkeletonRows';
 import Pagination from './Pagination';
 import {
@@ -10,13 +10,27 @@ import {
   calcCR,
   calcStpCR,
   HOUR_SLOTS,
+  passesTrafficFilters,
 } from './utils';
 import * as XLSX from 'xlsx';
 
-const today = new Date().toISOString().split('T')[0];
-const DEFAULT_HOURLY_FILTERS = { startDate: today, endDate: today, campaignName: '' };
 const CAMPAIGNS_PER_PAGE = 5;
 const CUT_OPTIONS = [0, 10, 20, 30];
+
+function filterCampaigns(campaigns, filters) {
+  return campaigns.filter(c => passesTrafficFilters(c, filters));
+}
+
+function filterGroupedCampaigns(grouped, filters) {
+  return grouped
+    .map(c => ({
+      ...c,
+      dates: c.dates.filter(({ date, hourlyData }) =>
+        passesTrafficFilters({ ...c, date, hourlyData }, filters)
+      ),
+    }))
+    .filter(c => c.dates.length > 0);
+}
 
 function groupCampaigns(campaigns) {
   const map = new Map();
@@ -237,12 +251,10 @@ export default function HourlyReport({ filters: externalFilters, onCountChange }
     setLoading(true); setError('');
     fetchHourlyReport(filters.startDate, filters.endDate)
       .then(data => {
-        const grouped = groupCampaigns(data);
-        const filtered = filters.campaignName
-          ? grouped.filter(c => c.productname === filters.campaignName)
-          : grouped;
-        setCampaigns(filtered);
-        setSummaryRows(buildSummaryRows(filtered));
+        const filtered = filterCampaigns(data, filters);
+        const grouped = filterGroupedCampaigns(groupCampaigns(filtered), filters);
+        setCampaigns(grouped);
+        setSummaryRows(buildSummaryRows(grouped));
         setPage(1);
         onCountChange?.(filtered.length);
       })

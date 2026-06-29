@@ -5,7 +5,7 @@ import { SummaryFilterBar, DEFAULT_SUMMARY_FILTERS } from './FilterPanel';
 import Pagination from './Pagination';
 import SkeletonRows from './SkeletonRows';
 import NullCell from './NullCell';
-import { totalsFromHourlyData, calcCR, calcStpCR } from './utils';
+import { totalsFromHourlyData, calcCR, calcStpCR, billerFromHourly, passesBillingFilters, passesTrafficFilters } from './utils';
 import * as XLSX from 'xlsx';
 
 const ROWS_PER_PAGE = 50;
@@ -59,36 +59,6 @@ const API_COLS = [
   { key: 'stpCR',             label: 'STP CR %' },
 ];
 
-function billerFromHourly(c) {
-  const links   = (c.links || '').toLowerCase();
-  const product = (c.productname || '').toLowerCase().trim();
-  if (links.includes('/briccs/') || links.includes('briccslp') || product.includes('bric')) {
-    return { billerName: 'BRICCS', operatorId: 2135, operatorName: 'NG_MTN (2135)', serviceName: 'Poker' };
-  }
-  if (links.includes('xceed') || product === 'xceed') {
-    return { billerName: 'XCEED', operatorId: 9039, operatorName: 'SD_MTN (9039)', serviceName: 'AIGamopedia' };
-  }
-  return null;
-}
-
-function passesBillingFilters(r, filters) {
-  if (filters.billerName && r.billerName !== filters.billerName) return false;
-  if (filters.adnetwork && r.billerName !== filters.adnetwork) return false;
-  if (filters.operatorId && String(r.operatorId) !== String(filters.operatorId)) return false;
-  if (filters.serviceName && r.serviceName !== filters.serviceName) return false;
-  return true;
-}
-
-function passesTrafficFilters(c, meta, filters) {
-  const aggFilter = filters.billerName || filters.adnetwork;
-  if (aggFilter && (!meta || meta.billerName !== aggFilter)) return false;
-  if (filters.operatorId && (!meta || String(meta.operatorId) !== String(filters.operatorId))) return false;
-  if (filters.serviceName && meta?.serviceName &&
-      filters.serviceName.toLowerCase() !== meta.serviceName.toLowerCase()) return false;
-  if (filters.serviceName && !meta) return false;
-  return true;
-}
-
 function aggOpKey(billerName, operatorId) {
   return `${billerName || ''}__${operatorId ?? ''}`;
 }
@@ -140,7 +110,7 @@ function mapBillingRow(r, dateLabel, filters) {
 /** Traffic row — one per campaign; conversions & STP from API as-is */
 function mapTrafficRow(c, dateLabel, filters) {
   const meta = billerFromHourly(c);
-  if (!passesTrafficFilters(c, meta, filters)) return null;
+  if (!passesTrafficFilters(c, filters)) return null;
 
   const t = totalsFromHourlyData(c.hourlyData);
   if (!t.clicks && !t.stp && !t.conversions) return null;

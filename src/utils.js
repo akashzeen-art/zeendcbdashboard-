@@ -64,6 +64,41 @@ export const HOUR_SLOTS = Array.from({ length: 24 }, (_, i) => ({
   index: i,
 }));
 
+/** Map hourly campaign links/product to billing aggregator + operator. */
+export function billerFromHourly(c) {
+  const links   = (c.links || '').toLowerCase();
+  const product = (c.productname || '').toLowerCase().trim();
+  if (links.includes('/briccs/') || links.includes('briccslp') || product.includes('bric')) {
+    return { billerName: 'BRICCS', operatorId: 2135, operatorName: 'NG_MTN (2135)', serviceName: 'Poker' };
+  }
+  if (links.includes('xceed') || product === 'xceed' || product.includes('xceed')) {
+    return { billerName: 'XCEED', operatorId: 9039, operatorName: 'SD_MTN (9039)', serviceName: 'AIGamopedia' };
+  }
+  return null;
+}
+
+export function passesTrafficFilters(c, filters) {
+  const meta = billerFromHourly(c);
+  if (filters.billerName && (!meta || meta.billerName !== filters.billerName)) return false;
+  if (filters.dspNetwork && (c.dspName || '') !== filters.dspNetwork) return false;
+  if (filters.operatorId && (!meta || String(meta.operatorId) !== String(filters.operatorId))) return false;
+  if (filters.serviceName) {
+    const product = c.productname || '';
+    if (product !== filters.serviceName && meta?.serviceName !== filters.serviceName) return false;
+  }
+  if (filters.campaignName && (c.productname || '') !== filters.campaignName) return false;
+  return true;
+}
+
+export function passesBillingFilters(r, filters) {
+  if (filters.dspNetwork) return false;
+  if (filters.campaignName) return false;
+  if (filters.billerName && r.billerName !== filters.billerName) return false;
+  if (filters.operatorId && String(r.operatorId) !== String(filters.operatorId)) return false;
+  if (filters.serviceName && r.serviceName !== filters.serviceName) return false;
+  return true;
+}
+
 export async function updateCutValue(campaignId, links, cutValue) {
   const res = await fetch(`${POSTBACK_URL}/updateCut`, {
     method: 'POST',

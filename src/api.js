@@ -18,8 +18,6 @@ export async function fetchSummary(filters) {
     ...(filters.billerName  && { billerName:  filters.billerName }),
     ...(filters.operatorId  && { operatorId:  filters.operatorId }),
     ...(filters.serviceName && { serviceName: filters.serviceName }),
-    // adnetwork maps to billerName if billerName not already set
-    ...(!filters.billerName && filters.adnetwork && { billerName: filters.adnetwork }),
     ...(filters.page        && { page:        filters.page }),
     ...(filters.size        && { size:        filters.size }),
   };
