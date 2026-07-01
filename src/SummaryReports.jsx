@@ -145,9 +145,8 @@ function mapTrafficRow(c, dateLabel, filters) {
 }
 
 /**
- * One table only:
- * - Traffic rows per campaign when hourly exists for that aggregator+operator
- * - Billing rows per price point only when NO traffic covers that aggregator+operator
+ * Traffic rows per campaign + billing rows per price point.
+ * Both are always included — clicks from hourly, ACT/renewals from billing API.
  */
 function buildDayRows(day, apiRows, hourlyForDay, filters) {
   const traffic = (hourlyForDay || [])
@@ -155,12 +154,9 @@ function buildDayRows(day, apiRows, hourlyForDay, filters) {
     .map(c => mapTrafficRow(c, day, filters))
     .filter(Boolean);
 
-  const trafficAggOps = new Set(traffic.map(r => r._aggOp).filter(Boolean));
-
   const billing = (apiRows || [])
     .map(r => mapBillingRow(r, day, filters))
-    .filter(Boolean)
-    .filter(r => !trafficAggOps.has(r._aggOp));
+    .filter(Boolean);
 
   return [...traffic, ...billing];
 }
