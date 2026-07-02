@@ -64,15 +64,77 @@ export const HOUR_SLOTS = Array.from({ length: 24 }, (_, i) => ({
   index: i,
 }));
 
+const GEO_LABELS = {
+  NG: 'Nigeria (NG)',
+  SD: 'Sudan (SD)',
+  KE: 'Kenya (KE)',
+};
+
+/** Parse API operator code → { geo, operator } e.g. NG_MTN → Nigeria (NG), MTN */
+export function parseOperatorFields(operatorName, operatorId) {
+  const raw = (operatorName || '').trim();
+  if (!raw && operatorId) return { geo: null, operator: String(operatorId) };
+
+  const upper = raw.toUpperCase();
+
+  if (upper.includes('SAFARICOM')) {
+    return { geo: GEO_LABELS.KE, operator: 'Safaricom' };
+  }
+
+  const coded = upper.match(/^([A-Z]{2})[_\s-]+(.+)$/);
+  if (coded) {
+    const code = coded[1];
+    const opRaw = coded[2].replace(/_/g, ' ').trim();
+    const geo = GEO_LABELS[code] || `${code}`;
+    const operator = opRaw === 'MTN' ? 'MTN' : opRaw.replace(/\b\w/g, c => c.toUpperCase());
+    return { geo, operator };
+  }
+
+  if (upper.includes('NG') && upper.includes('MTN')) return { geo: GEO_LABELS.NG, operator: 'MTN' };
+  if (upper.includes('SD') && upper.includes('MTN')) return { geo: GEO_LABELS.SD, operator: 'MTN' };
+
+  return { geo: null, operator: raw || null };
+}
+
+/** Daily / Weekly / Monthly from campaign product name */
+export function parsePackFromProduct(productName) {
+  const p = (productName || '').toLowerCase();
+  if (/\bdaily\b/.test(p)) return 'Daily';
+  if (/\bweekly\b/.test(p)) return 'Weekly';
+  if (/\bmonthly\b/.test(p)) return 'Monthly';
+  return null;
+}
+
+/** Service name from billing row or hourly campaign */
+export function resolveServiceName({ billingService, metaService, productName }) {
+  if (billingService) return billingService;
+  if (metaService) return metaService;
+  const name = (productName || '').trim();
+  if (!name) return null;
+  return name.replace(/\s+(Daily|Weekly|Monthly)\s*$/i, '').trim() || name;
+}
+
 /** Map hourly campaign links/product to billing aggregator + operator. */
 export function billerFromHourly(c) {
   const links   = (c.links || '').toLowerCase();
   const product = (c.productname || '').toLowerCase().trim();
   if (links.includes('/briccs/') || links.includes('briccslp') || product.includes('bric')) {
-    return { billerName: 'BRICCS', operatorId: 2135, operatorName: 'NG_MTN (2135)', serviceName: 'Poker' };
+    return {
+      billerName: 'BRICCS',
+      operatorId: 2135,
+      operatorName: 'NG_MTN',
+      serviceName: 'Poker',
+      ...parseOperatorFields('NG_MTN', 2135),
+    };
   }
   if (links.includes('xceed') || product === 'xceed' || product.includes('xceed')) {
-    return { billerName: 'XCEED', operatorId: 9039, operatorName: 'SD_MTN (9039)', serviceName: 'AIGamopedia' };
+    return {
+      billerName: 'XCEED',
+      operatorId: 9039,
+      operatorName: 'SD_MTN',
+      serviceName: 'AIGamopedia',
+      ...parseOperatorFields('SD_MTN', 9039),
+    };
   }
   return null;
 }

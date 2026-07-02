@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, startOfDay, endOfDay } from 'date-fns';
-import { fetchFilterOptions, fetchHourlyReport } from './api';
+import { fetchFilterOptions, fetchHourlyReport, fetchSummary } from './api';
 import { billerFromHourly } from './utils';
 import DateRangePicker from './DateRangePicker';
 
@@ -26,6 +26,14 @@ export const DEFAULT_HOURLY_FILTERS = {
   dspNetwork: '',
   billerName: '',
   campaignName: '',
+};
+
+export const DEFAULT_PRICEPOINT_FILTERS = {
+  startDate: monthAgo,
+  endDate: today,
+  operatorId: '',
+  serviceName: '',
+  pricePoint: '',
 };
 
 const EMPTY_OPTS = {
@@ -356,6 +364,121 @@ export function HourlyFilterBar({ onApply, onExport, exportDisabled = true }) {
           </div>
           <div className="demo-field">
             <Dropdown label="Please select Campaign" value={f.campaignName} options={campaigns} onChange={set('campaignName')} placeholder="-- All Campaigns --" loading={loading} />
+          </div>
+          <div className="demo-field demo-field-actions">
+            <label className="demo-label">&nbsp;</label>
+            <div className="demo-action-row">
+              <button type="submit" className="demo-btn demo-btn-primary" disabled={submitting}>
+                {submitting ? 'Loading…' : 'Submit'}
+              </button>
+              <button type="button" className="demo-btn demo-btn-secondary" onClick={handleReset}>Reset</button>
+            </div>
+          </div>
+          {onExport && (
+            <div className="demo-field demo-field-actions">
+              <label className="demo-label">&nbsp;</label>
+              <button type="button" className="demo-btn demo-btn-primary" onClick={onExport} disabled={exportDisabled}>
+                Csv Download
+              </button>
+            </div>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+}
+
+/**
+ * Price-point page options — sourced strictly from the billing summary API,
+ * so a selected product/price point always maps to real billing rows.
+ */
+function usePricePointOptions(startDate, endDate) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!startDate || !endDate) return undefined;
+    setLoading(true);
+    fetchSummary({ startDate, endDate, page: 1, size: 500 })
+      .then(res => { if (!cancelled) setRows(res.data || []); })
+      .catch(() => { if (!cancelled) setRows([]); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [startDate, endDate]);
+
+  const build = (selected = {}) => {
+    const { operatorId, serviceName } = selected;
+    const operators = buildOperators(rows);
+
+    const byOp = rows.filter(r => !operatorId || String(r.operatorId) === String(operatorId));
+    const products = toOptions(new Set(byOp.map(r => r.serviceName).filter(Boolean)));
+
+    const byOpSvc = byOp.filter(r => !serviceName || r.serviceName === serviceName);
+    const pricePoints = [...new Set(byOpSvc.map(r => r.pricePoint).filter(pp => pp > 0))]
+      .sort((a, b) => a - b)
+      .map(pp => ({ value: String(pp), label: String(pp) }));
+
+    return { operators, products, pricePoints };
+  };
+
+  return { loading, build };
+}
+
+export function PricePointFilterBar({ onApply, onExport, exportDisabled = true }) {
+  const [dateRange, setDateRange] = useState(summaryDateRange);
+  const [f, setF] = useState(DEFAULT_PRICEPOINT_FILTERS);
+  const [submitting, setSubmitting] = useState(false);
+  const { loading, build } = usePricePointOptions(f.startDate, f.endDate);
+  const { operators, products, pricePoints } = build(f);
+
+  const set = (k) => (v) => {
+    setF(prev => {
+      const next = { ...prev, [k]: v };
+      if (k === 'operatorId') { next.serviceName = ''; next.pricePoint = ''; }
+      if (k === 'serviceName') { next.pricePoint = ''; }
+      return next;
+    });
+  };
+
+  const handleDate = (r) => {
+    setDateRange(r);
+    setF({
+      ...DEFAULT_PRICEPOINT_FILTERS,
+      startDate: format(r.s, 'yyyy-MM-dd'),
+      endDate: format(r.e, 'yyyy-MM-dd'),
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    onApply({ ...f });
+    setTimeout(() => setSubmitting(false), 400);
+  };
+
+  const handleReset = () => {
+    setDateRange(summaryDateRange);
+    setF(DEFAULT_PRICEPOINT_FILTERS);
+    onApply(DEFAULT_PRICEPOINT_FILTERS);
+  };
+
+  return (
+    <div className="demo-filter-panel">
+      <form onSubmit={handleSubmit}>
+        <div className="demo-filter-grid">
+          <div className="demo-field">
+            <label className="demo-label">Select Dates <span className="req">*</span></label>
+            <DateRangePicker value={dateRange} onChange={handleDate} />
+          </div>
+          <div className="demo-field">
+            <Dropdown label="Please select Operator" value={f.operatorId} options={operators} onChange={set('operatorId')} placeholder="-- Select Operator --" loading={loading} />
+          </div>
+          <div className="demo-field">
+            <Dropdown label="Please select Product" value={f.serviceName} options={products} onChange={set('serviceName')} placeholder="-- All Products --" loading={loading} />
+          </div>
+          <div className="demo-field">
+            <Dropdown label="Please select Price Point" value={f.pricePoint} options={pricePoints} onChange={set('pricePoint')} placeholder="-- All Price Points --" loading={loading} />
           </div>
           <div className="demo-field demo-field-actions">
             <label className="demo-label">&nbsp;</label>

@@ -5,17 +5,19 @@ import { SummaryFilterBar, DEFAULT_SUMMARY_FILTERS } from './FilterPanel';
 import Pagination from './Pagination';
 import SkeletonRows from './SkeletonRows';
 import NullCell from './NullCell';
-import { totalsFromHourlyData, calcCR, calcStpCR, billerFromHourly, passesBillingFilters, passesTrafficFilters } from './utils';
+import { totalsFromHourlyData, calcCR, calcStpCR, billerFromHourly, passesBillingFilters, passesTrafficFilters, parseOperatorFields, parsePackFromProduct, resolveServiceName } from './utils';
 import * as XLSX from 'xlsx';
 
 const ROWS_PER_PAGE = 50;
 
 const S2S_COLS = [
   { key: 'date',              label: 'Date' },
-  { key: 'campaignService',   label: 'Campaign / Service' },
+  { key: 'geo',               label: 'Geo' },
+  { key: 'operator',          label: 'Operator' },
+  { key: 'service',           label: 'Service' },
+  { key: 'pack',              label: 'Pack' },
   { key: 'billerName',        label: 'Aggregator' },
   { key: 'dspNetwork',        label: 'Network' },
-  { key: 'operatorName',      label: 'G / O / S' },
   { key: 'clicks',            label: 'Clicks' },
   { key: 'activation',        label: 'ACT' },
   { key: 'parkToAct',         label: 'P2A' },
@@ -33,10 +35,12 @@ const S2S_COLS = [
 
 const API_COLS = [
   { key: 'date',              label: 'Date' },
-  { key: 'campaignService',   label: 'Campaign / Service' },
+  { key: 'geo',               label: 'Geo' },
+  { key: 'operator',          label: 'Operator' },
+  { key: 'service',           label: 'Service' },
+  { key: 'pack',              label: 'Pack' },
   { key: 'billerName',        label: 'Aggregator' },
   { key: 'dspNetwork',        label: 'Network' },
-  { key: 'operatorName',      label: 'G / O / S' },
   { key: 'clicks',            label: 'Clicks' },
   { key: 'sendPin',           label: 'Send Pin',       na: true },
   { key: 'uniqPinSend',       label: 'Uniq Pin Send',  na: true },
@@ -63,105 +67,187 @@ function unifiedActivation(billingAct, hourlyConversions) {
   return v || null;
 }
 
-function aggOpKey(billerName, operatorId) {
-  return `${billerName || ''}__${operatorId ?? ''}`;
+
+function billingMapKey(operatorId, serviceName, billerName) {
+  return `${operatorId ?? ''}__${serviceName || ''}__${billerName || ''}`;
 }
 
-/** Billing row — one per API record (price point kept separate) */
-function mapBillingRow(r, dateLabel, filters) {
-  if (!passesBillingFilters(r, filters)) return null;
+/** Aggregate billing per operator + service (price points merged). */
+function buildBillingMap(apiRows, filters) {
+  const map = new Map();
 
-  const act      = r.activation        || 0;
-  const ren      = r.renewal           || 0;
-  const parking  = r.activationPending || 0;
-  const churn    = r.churn             || 0;
-  const price    = r.pricePoint        || 0;
-  const actRev   = act * price;
-  const renewRev = ren * price;
-  const totalRev = actRev + renewRev;
-  const ppLabel  = price ? ` · PP ${price}` : '';
-  const aggOp    = aggOpKey(r.billerName, r.operatorId);
+  (apiRows || []).forEach(r => {
+    if (!passesBillingFilters(r, filters)) return;
+
+    const key = billingMapKey(r.operatorId, r.serviceName, r.billerName);
+    if (!map.has(key)) {
+      map.set(key, {
+        billerName: r.billerName || null,
+        operatorId: r.operatorId ?? null,
+        operatorName: r.operatorName || null,
+        serviceName: r.serviceName || null,
+        activation: 0,
+        renewal: 0,
+        churn: 0,
+        activationPending: 0,
+        actRev: 0,
+        renewRev: 0,
+      });
+    }
+
+    const g = map.get(key);
+    const price = r.pricePoint || 0;
+    const act   = r.activation || 0;
+    const ren   = r.renewal    || 0;
+
+    g.activation        += act;
+    g.renewal           += ren;
+    g.churn             += (r.churn || 0);
+    g.activationPending += (r.activationPending || 0);
+    g.actRev            += act * price;
+    g.renewRev          += ren * price;
+  });
+
+  return map;
+}
+
+function billingMapToRow(g, dateLabel) {
+  const act = g.activation;
+  const parking = g.activationPending;
+  const totalRev = g.actRev + g.renewRev;
+  const { geo, operator } = parseOperatorFields(g.operatorName, g.operatorId);
 
   return {
     date: dateLabel,
-    campaignService: `${r.serviceName || '—'}${ppLabel}`,
-    billerName: r.billerName || null,
+    geo,
+    operator,
+    service: g.serviceName || null,
+    pack: null,
+    billerName: g.billerName,
     dspNetwork: null,
-    operatorName: r.operatorName
-      ? `${r.operatorName} (${r.operatorId})`
-      : (r.operatorId ? String(r.operatorId) : null),
     clicks: null,
-    activation: unifiedActivation(act, null),
+    activation: act || null,
     stp: null,
     activationPending: parking || null,
-    churn: churn || null,
+    churn: g.churn || null,
     sdd: null,
-    renewal: ren || null,
+    renewal: g.renewal || null,
     parkToAct: parking > 0 && act > 0 ? ((act / parking) * 100).toFixed(2) : null,
     campCR: null,
     stpCR: null,
-    actRev: actRev > 0 ? actRev.toFixed(2) : null,
-    renewRev: renewRev > 0 ? renewRev.toFixed(2) : null,
+    actRev: g.actRev > 0 ? g.actRev.toFixed(2) : null,
+    renewRev: g.renewRev > 0 ? g.renewRev.toFixed(2) : null,
     totalRevUsd: totalRev > 0 ? totalRev.toFixed(2) : null,
     sendPin: null, uniqPinSend: null, verPin: null, uniqVerPin: null, pinVerSuccess: null,
-    _rowKey: `billing-${dateLabel}-${r.billerName}-${r.operatorId}-${r.serviceName}-${price}`,
-    _aggOp: aggOp,
-    _sort: 1,
+    _rowKey: `billing-${dateLabel}-${g.billerName}-${g.operatorId}-${g.serviceName}`,
+    _billingKey: billingMapKey(g.operatorId, g.serviceName, g.billerName),
   };
 }
 
-/** Traffic row — one per campaign; hourly conversions shown in ACT column */
-function mapTrafficRow(c, dateLabel, filters) {
-  const meta = billerFromHourly(c);
-  if (!passesTrafficFilters(c, filters)) return null;
+function applyBillingToRow(row, billing) {
+  const act = billing.activation;
+  const parking = billing.activationPending;
+  const totalRev = billing.actRev + billing.renewRev;
+  const clicks = row.clicks || 0;
+  const conversions = row._conversions || 0;
 
-  const t = totalsFromHourlyData(c.hourlyData);
-  if (!t.clicks && !t.stp && !t.conversions) return null;
-
-  const { clicks, conversions, stp } = t;
-  const activation = unifiedActivation(null, conversions);
-
-  return {
-    date: dateLabel,
-    campaignService: `${c.productname || '—'} #${c.campaignId}`,
-    billerName: meta?.billerName || null,
-    dspNetwork: c.dspName || null,
-    operatorName: meta?.operatorName || null,
-    clicks: clicks || null,
-    activation,
-    stp: stp || null,
-    activationPending: null,
-    churn: null,
-    sdd: null,
-    renewal: null,
-    parkToAct: null,
-    campCR: calcCR(activation ?? 0, clicks),
-    stpCR:  calcStpCR(stp, clicks),
-    actRev: null,
-    renewRev: null,
-    totalRevUsd: null,
-    sendPin: null, uniqPinSend: null, verPin: null, uniqVerPin: null, pinVerSuccess: null,
-    _rowKey: `traffic-${dateLabel}-${c.campaignId}`,
-    _aggOp: meta ? aggOpKey(meta.billerName, meta.operatorId) : null,
-    _sort: 0,
-  };
+  row.activation = unifiedActivation(act, conversions);
+  row.activationPending = parking || null;
+  row.churn = billing.churn || null;
+  row.renewal = billing.renewal || null;
+  row.parkToAct = parking > 0 && act > 0 ? ((act / parking) * 100).toFixed(2) : null;
+  row.actRev = billing.actRev > 0 ? billing.actRev.toFixed(2) : null;
+  row.renewRev = billing.renewRev > 0 ? billing.renewRev.toFixed(2) : null;
+  row.totalRevUsd = totalRev > 0 ? totalRev.toFixed(2) : null;
+  row.campCR = calcCR(row.activation ?? 0, clicks);
+  row.stpCR = calcStpCR(row.stp ?? 0, clicks);
 }
 
-/**
- * Traffic rows per campaign + billing rows per price point.
- * Both are always included — clicks from hourly, ACT/renewals from billing API.
- */
+/** One unified row per date + geo + operator + service + pack + network + aggregator */
 function buildDayRows(day, apiRows, hourlyForDay, filters) {
-  const traffic = (hourlyForDay || [])
-    .filter(c => c.type === 'vas')
-    .map(c => mapTrafficRow(c, day, filters))
-    .filter(Boolean);
+  const billingMap = buildBillingMap(apiRows, filters);
+  const trafficMap = new Map();
+  const billingAssigned = new Set();
 
-  const billing = (apiRows || [])
-    .map(r => mapBillingRow(r, day, filters))
-    .filter(Boolean);
+  (hourlyForDay || []).forEach(c => {
+    if (c.type !== 'vas') return;
+    const meta = billerFromHourly(c);
+    if (!passesTrafficFilters(c, filters)) return;
 
-  return [...traffic, ...billing];
+    const t = totalsFromHourlyData(c.hourlyData);
+    if (!t.clicks && !t.stp && !t.conversions) return;
+
+    const { geo, operator } = parseOperatorFields(meta?.operatorName, meta?.operatorId);
+    const service = resolveServiceName({ metaService: meta?.serviceName, productName: c.productname });
+    const pack = parsePackFromProduct(c.productname);
+    const network = c.dspName || '';
+    const agg = meta?.billerName || '';
+
+    const key = `${geo}__${operator}__${service}__${pack || ''}__${network}__${agg}`;
+
+    if (!trafficMap.has(key)) {
+      trafficMap.set(key, {
+        date: day,
+        geo,
+        operator,
+        service,
+        pack,
+        billerName: meta?.billerName || null,
+        dspNetwork: network || null,
+        clicks: 0,
+        stp: 0,
+        _conversions: 0,
+        _operatorId: meta?.operatorId ?? null,
+        _billingKey: billingMapKey(meta?.operatorId, service, meta?.billerName),
+        activation: null,
+        activationPending: null,
+        churn: null,
+        renewal: null,
+        parkToAct: null,
+        actRev: null,
+        renewRev: null,
+        totalRevUsd: null,
+        sdd: null,
+        campCR: null,
+        stpCR: null,
+        sendPin: null, uniqPinSend: null, verPin: null, uniqVerPin: null, pinVerSuccess: null,
+        _rowKey: `row-${day}-${key}`,
+      });
+    }
+
+    const row = trafficMap.get(key);
+    row.clicks += t.clicks;
+    row.stp += t.stp;
+    row._conversions += t.conversions;
+  });
+
+  const rows = [];
+
+  trafficMap.forEach(row => {
+    const billing = billingMap.get(row._billingKey);
+    if (billing && !billingAssigned.has(row._billingKey)) {
+      applyBillingToRow(row, billing);
+      billingAssigned.add(row._billingKey);
+    } else {
+      row.activation = unifiedActivation(null, row._conversions);
+      row.campCR = calcCR(row._conversions, row.clicks);
+      row.stpCR = calcStpCR(row.stp, row.clicks);
+    }
+    row.clicks = row.clicks || null;
+    row.stp = row.stp || null;
+    delete row._conversions;
+    delete row._operatorId;
+    delete row._billingKey;
+    rows.push(row);
+  });
+
+  billingMap.forEach((billing, bk) => {
+    if (!billingAssigned.has(bk)) {
+      rows.push(billingMapToRow(billing, day));
+    }
+  });
+
+  return rows;
 }
 
 function getDaysInRange(startDate, endDate) {
@@ -197,9 +283,11 @@ function sortRows(rows) {
   return [...rows].sort((a, b) => {
     const dateCmp = b.date.localeCompare(a.date);
     if (dateCmp !== 0) return dateCmp;
-    const sortCmp = (a._sort ?? 0) - (b._sort ?? 0);
-    if (sortCmp !== 0) return sortCmp;
-    return String(a.campaignService || '').localeCompare(String(b.campaignService || ''));
+    const geoCmp = String(a.geo || '').localeCompare(String(b.geo || ''));
+    if (geoCmp !== 0) return geoCmp;
+    const svcCmp = String(a.service || '').localeCompare(String(b.service || ''));
+    if (svcCmp !== 0) return svcCmp;
+    return String(a.pack || '').localeCompare(String(b.pack || ''));
   });
 }
 
@@ -214,11 +302,13 @@ function Cell({ col, row }) {
   if (col.key === 'campCR' || col.key === 'stpCR' || col.key === 'parkToAct') return <CRCell v={v} />;
   if (col.na) return <span className="ct-muted" style={{ fontSize: '.72rem' }}>N/A</span>;
   if (v == null) return <NullCell />;
-  if (col.key === 'date')            return <span className="ct-date">{formatTableDate(v)}</span>;
-  if (col.key === 'campaignService') return <span className="td-primary">{v}</span>;
-  if (col.key === 'billerName')      return <span className="td-primary">{aggregatorLabel(v)}</span>;
-  if (col.key === 'dspNetwork')      return v ? <span className="ct-network">{v}</span> : <NullCell />;
-  if (col.key === 'operatorName')    return <span className="ct-network">{v}</span>;
+  if (col.key === 'date')     return <span className="ct-date">{formatTableDate(v)}</span>;
+  if (col.key === 'geo')      return v ? <span className="ct-network">{v}</span> : <NullCell />;
+  if (col.key === 'operator') return v ? <span className="ct-network">{v}</span> : <NullCell />;
+  if (col.key === 'service')  return v ? <span className="td-primary">{v}</span> : <NullCell />;
+  if (col.key === 'pack')     return v ? <span className="td-primary">{v}</span> : <NullCell />;
+  if (col.key === 'billerName') return <span className="td-primary">{aggregatorLabel(v)}</span>;
+  if (col.key === 'dspNetwork') return v ? <span className="ct-network">{v}</span> : <NullCell />;
   if (col.key === 'clicks')          return <strong>{Number(v).toLocaleString()}</strong>;
   if (col.key === 'activation')      return <strong>{Number(v).toLocaleString()}</strong>;
   if (col.key === 'stp')             return <span className="stp-badge">{Number(v).toLocaleString()}</span>;
