@@ -26,7 +26,6 @@ const S2S_COLS = [
   { key: 'actRev',            label: 'Act Rev' },
   { key: 'renewRev',          label: 'Renew Rev' },
   { key: 'totalRevUsd',       label: 'Total Rev USD' },
-  { key: 'conversions',       label: 'Conversions' },
   { key: 'stp',               label: 'Sent To Pub' },
   { key: 'campCR',            label: 'CR %' },
   { key: 'stpCR',             label: 'STP CR %' },
@@ -53,11 +52,16 @@ const API_COLS = [
   { key: 'actRev',            label: 'Act Rev' },
   { key: 'renewRev',          label: 'Renew Rev' },
   { key: 'totalRevUsd',       label: 'Total Rev USD' },
-  { key: 'conversions',       label: 'Conversions' },
   { key: 'stp',               label: 'Sent To Pub' },
   { key: 'campCR',            label: 'CR %' },
   { key: 'stpCR',             label: 'STP CR %' },
 ];
+
+/** Billing activation and hourly conversions are the same metric. */
+function unifiedActivation(billingAct, hourlyConversions) {
+  const v = billingAct || hourlyConversions || 0;
+  return v || null;
+}
 
 function aggOpKey(billerName, operatorId) {
   return `${billerName || ''}__${operatorId ?? ''}`;
@@ -87,8 +91,7 @@ function mapBillingRow(r, dateLabel, filters) {
       ? `${r.operatorName} (${r.operatorId})`
       : (r.operatorId ? String(r.operatorId) : null),
     clicks: null,
-    activation: act || null,
-    conversions: null,
+    activation: unifiedActivation(act, null),
     stp: null,
     activationPending: parking || null,
     churn: churn || null,
@@ -107,7 +110,7 @@ function mapBillingRow(r, dateLabel, filters) {
   };
 }
 
-/** Traffic row — one per campaign; conversions & STP from API as-is */
+/** Traffic row — one per campaign; hourly conversions shown in ACT column */
 function mapTrafficRow(c, dateLabel, filters) {
   const meta = billerFromHourly(c);
   if (!passesTrafficFilters(c, filters)) return null;
@@ -116,6 +119,7 @@ function mapTrafficRow(c, dateLabel, filters) {
   if (!t.clicks && !t.stp && !t.conversions) return null;
 
   const { clicks, conversions, stp } = t;
+  const activation = unifiedActivation(null, conversions);
 
   return {
     date: dateLabel,
@@ -124,15 +128,14 @@ function mapTrafficRow(c, dateLabel, filters) {
     dspNetwork: c.dspName || null,
     operatorName: meta?.operatorName || null,
     clicks: clicks || null,
-    conversions: conversions || null,
+    activation,
     stp: stp || null,
-    activation: null,
     activationPending: null,
     churn: null,
     sdd: null,
     renewal: null,
     parkToAct: null,
-    campCR: calcCR(conversions, clicks),
+    campCR: calcCR(activation ?? 0, clicks),
     stpCR:  calcStpCR(stp, clicks),
     actRev: null,
     renewRev: null,
@@ -217,6 +220,7 @@ function Cell({ col, row }) {
   if (col.key === 'dspNetwork')      return v ? <span className="ct-network">{v}</span> : <NullCell />;
   if (col.key === 'operatorName')    return <span className="ct-network">{v}</span>;
   if (col.key === 'clicks')          return <strong>{Number(v).toLocaleString()}</strong>;
+  if (col.key === 'activation')      return <strong>{Number(v).toLocaleString()}</strong>;
   if (col.key === 'stp')             return <span className="stp-badge">{Number(v).toLocaleString()}</span>;
   if (col.key === 'actRev' || col.key === 'renewRev' || col.key === 'totalRevUsd')
     return <span className="ct-rev">{v}</span>;
