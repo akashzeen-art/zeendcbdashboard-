@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { eachDayOfInterval, format, parseISO } from 'date-fns';
 import { fetchSummary, fetchHourlyReport } from './api';
 import { PricePointFilterBar, DEFAULT_PRICEPOINT_FILTERS } from './FilterPanel';
-import { totalsFromHourlyData, billerFromHourly } from './utils';
+import { totalsFromHourlyData, billerFromHourly, applySheetNumberFormats } from './utils';
 import * as XLSX from 'xlsx';
 
 // Local currency → USD divisor. Adjust the rates if the FX changes.
@@ -175,21 +175,29 @@ export default function PricePointReport() {
       const o = { Date: r.date, Operator: r.operatorName, Product: r.serviceName, Clicks: r.clicks };
       pricePoints.forEach(pp => { o[`GA ${pp}`] = r.gaByPp[pp] || 0; });
       o['Total GA']   = r.totalGa;
-      o['GA Rev']     = r.gaRev.toFixed(2);
+      o['GA Rev']     = r.gaRev || '';
       o['GA Parking'] = r.parking;
       o['Churn']      = r.churn;
       pricePoints.forEach(pp => { o[`Ren ${pp}`] = r.renByPp[pp] || 0; });
       o['Total Ren']                        = r.totalRen;
-      o['Ren Revenue']                      = r.renRev.toFixed(2);
-      o[`Total Revenue (${currencyCode})`]  = r.totalLocal.toFixed(2);
-      o['Total Revenue (USD)']              = r.totalUsd.toFixed(2);
-      o['Act ARPU']                         = r.actArpu.toFixed(2);
-      o['Ren ARPU']                         = r.renArpu.toFixed(2);
+      o['Ren Revenue']                      = r.renRev || '';
+      o[`Total Revenue (${currencyCode})`]  = r.totalLocal || '';
+      o['Total Revenue (USD)']              = r.totalUsd || '';
+      o['Act ARPU']                         = r.actArpu || '';
+      o['Ren ARPU']                         = r.renArpu || '';
       o['Send Count']                       = r.sendCount;
       o['Spent']                            = '';
       return o;
     });
     const ws = XLSX.utils.json_to_sheet(data);
+    applySheetNumberFormats(ws, XLSX, [
+      'GA Rev', 'Ren Revenue', `Total Revenue (${currencyCode})`, 'Total Revenue (USD)',
+      'Act ARPU', 'Ren ARPU',
+    ], '#,##0.00');
+    applySheetNumberFormats(ws, XLSX, [
+      'Clicks', 'Total GA', 'GA Parking', 'Churn', 'Total Ren', 'Send Count',
+      ...pricePoints.flatMap(pp => [`GA ${pp}`, `Ren ${pp}`]),
+    ], '#,##0');
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'PricePoint Report');
     XLSX.writeFile(wb, `pricepoint_${filters.startDate}_${filters.endDate}.xlsx`);

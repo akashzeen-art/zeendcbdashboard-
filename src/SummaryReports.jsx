@@ -5,10 +5,18 @@ import { SummaryFilterBar, DEFAULT_SUMMARY_FILTERS } from './FilterPanel';
 import Pagination from './Pagination';
 import SkeletonRows from './SkeletonRows';
 import NullCell from './NullCell';
-import { totalsFromHourlyData, calcCR, calcStpCR, billerFromHourly, passesBillingFilters, passesTrafficFilters, parseOperatorFields, parsePackFromProduct, resolveServiceName } from './utils';
+import { totalsFromHourlyData, calcCR, calcStpCR, billerFromHourly, passesBillingFilters, passesTrafficFilters, parseOperatorFields, parsePackFromProduct, resolveServiceName, excelNum, applySheetNumberFormats } from './utils';
 import * as XLSX from 'xlsx';
 
 const ROWS_PER_PAGE = 50;
+
+const EXPORT_NUM_KEYS = new Set([
+  'clicks', 'activation', 'activationPending', 'churn', 'renewal', 'stp',
+  'actRev', 'renewRev', 'totalRevUsd',
+]);
+
+const EXPORT_REV_LABELS = ['Act Rev', 'Renew Rev', 'Total Rev USD'];
+const EXPORT_COUNT_LABELS = ['Clicks', 'ACT', 'PARK', 'Dct', 'RENEW', 'Sent To Pub'];
 
 const S2S_COLS = [
   { key: 'date',              label: 'Date' },
@@ -354,16 +362,22 @@ export default function SummaryReports() {
   const visibleRows = rows.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
 
   const exportRow = (r) => Object.fromEntries(cols.map(c => {
+    if (c.na) return [c.label, 'N/A'];
     let val = r[c.key];
     if (c.key === 'date' && val) val = formatTableDate(val);
-    if (c.key === 'billerName') val = aggregatorLabel(val);
-    return [c.label, c.na ? 'N/A' : (val ?? '')];
+    else if (c.key === 'billerName') val = aggregatorLabel(val);
+    else if (EXPORT_NUM_KEYS.has(c.key)) val = excelNum(val);
+    else if (c.key === 'campCR' || c.key === 'stpCR' || c.key === 'parkToAct') val = excelNum(val);
+    return [c.label, val ?? ''];
   }));
 
   const exportExcel = () => {
     if (!rows.length) return;
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows.map(exportRow));
+    applySheetNumberFormats(ws, XLSX, EXPORT_REV_LABELS, '#,##0.00');
+    applySheetNumberFormats(ws, XLSX, EXPORT_COUNT_LABELS, '#,##0');
+    applySheetNumberFormats(ws, XLSX, ['CR %', 'STP CR %', 'P2A'], '0.00');
     ws['!cols'] = cols.map(() => ({ wch: 18 }));
     XLSX.utils.book_append_sheet(wb, ws, subTab === 's2s' ? 'S2S Report' : 'API Report');
     XLSX.writeFile(wb, `summary_${subTab}_${filters.startDate}_${filters.endDate}.xlsx`);

@@ -174,3 +174,29 @@ export async function updateCutValue(campaignId, links, cutValue) {
   if (!res.ok) throw new Error(`Failed to update CUT (${res.status})`);
   return res.json();
 }
+
+/** Coerce a table value to a number for Excel export (SUM-friendly). */
+export function excelNum(val) {
+  if (val == null || val === '') return '';
+  if (typeof val === 'number' && Number.isFinite(val)) return val;
+  const n = parseFloat(String(val).replace(/,/g, ''));
+  return Number.isFinite(n) ? n : '';
+}
+
+/** Apply Excel number format to columns matched by header label. */
+export function applySheetNumberFormats(ws, XLSX, numericHeaders, format = '#,##0.00') {
+  if (!ws?.['!ref']) return;
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  const headerSet = new Set(numericHeaders);
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    const headerCell = ws[XLSX.utils.encode_cell({ r: 0, c })];
+    if (!headerCell || !headerSet.has(String(headerCell.v))) continue;
+    for (let r = range.s.r + 1; r <= range.e.r; r++) {
+      const cell = ws[XLSX.utils.encode_cell({ r, c })];
+      if (cell && typeof cell.v === 'number') {
+        cell.t = 'n';
+        cell.z = format;
+      }
+    }
+  }
+}
