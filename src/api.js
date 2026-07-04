@@ -61,7 +61,7 @@ export async function fetchHourlyReport(startDate, endDate) {
   return (Array.isArray(data) ? data : []).filter(c => c.type === 'vas');
 }
 
-// Update CUT — POST /postbacks/updateCut (CUT is stored server-side; not applied in CR/STP math)
+// Update CUT — GET /optimize?id={campaignId}&cut={0–100 step 10}
 export async function updateCut(campaignId, links, cut) {
   return updateCutValue(campaignId, links, cut);
 }

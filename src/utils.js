@@ -1,5 +1,22 @@
 const POSTBACK_URL = '/postbacks';
 
+/** GET /optimize?id={campaignId}&cut={0–100 step 10} — proxied to postback.v1mobi.com */
+export const OPTIMIZE_CUT_BASE =
+  import.meta.env.VITE_OPTIMIZE_CUT_URL || '/optimize';
+
+/** CUT % options: 0, 10, 20, … 100 */
+export const CUT_OPTIONS = Array.from({ length: 11 }, (_, i) => i * 10);
+const VALID_CUT_VALUES = new Set(CUT_OPTIONS);
+
+/** Optimize API uses campaignId; link ?id= is a different param and often 404s. */
+function resolveOptimizeId(campaignId, links) {
+  if (campaignId != null && String(campaignId).trim()) {
+    return String(campaignId).trim();
+  }
+  const match = String(links || '').match(/[?&]id=(\d+)/);
+  return match ? match[1] : '';
+}
+
 function intVal(v) {
   return parseInt(v ?? 0, 10) || 0;
 }
@@ -184,17 +201,37 @@ export function passesBillingFilters(r, filters) {
 }
 
 export async function updateCutValue(campaignId, links, cutValue) {
-  const res = await fetch(`${POSTBACK_URL}/updateCut`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({
-      campaignId,
-      links,
-      cut: parseInt(cutValue, 10),
-    }),
+  const cut = parseInt(cutValue, 10);
+  if (!VALID_CUT_VALUES.has(cut)) {
+    throw new Error(`CUT must be one of: ${CUT_OPTIONS.join(', ')}`);
+  }
+
+  const id = resolveOptimizeId(campaignId, links);
+  if (!id) {
+    throw new Error('Campaign ID is required to update CUT');
+  }
+
+  const url = `${OPTIMIZE_CUT_BASE}?id=${encodeURIComponent(id)}&cut=${cut}`;
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    mode: 'cors',
   });
-  if (!res.ok) throw new Error(`Failed to update CUT (${res.status})`);
-  return res.json();
+
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`API Error: ${res.status} ${res.statusText}${text ? `. ${text}` : ''}`);
+  }
+
+  const trimmed = text.trim();
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      /* plain-text success below */
+    }
+  }
+  return { success: true, message: trimmed || 'CUT updated successfully' };
 }
 
 /** Coerce a table value to a number for Excel export (SUM-friendly). */

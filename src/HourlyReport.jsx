@@ -11,11 +11,11 @@ import {
   calcStpCR,
   HOUR_SLOTS,
   passesTrafficFilters,
+  CUT_OPTIONS,
 } from './utils';
 import * as XLSX from 'xlsx';
 
 const CAMPAIGNS_PER_PAGE = 5;
-const CUT_OPTIONS = [0, 10, 20, 30];
 
 function filterCampaigns(campaigns, filters) {
   return campaigns.filter(c => passesTrafficFilters(c, filters));
@@ -117,10 +117,10 @@ function CutEditor({ campaign }) {
     try {
       await updateCut(campaign.campaignId, campaign.links, Number(val));
       showFeedback('success', 'CUT value updated successfully!');
-    } catch {
+    } catch (err) {
       setCutVal(prev);
       e.target.value = prev;
-      showFeedback('error', 'Failed to update CUT');
+      showFeedback('error', err?.message || 'Failed to update CUT');
     } finally {
       setSaving(false);
     }
@@ -197,7 +197,12 @@ function HourlyDetailTable({ hourlyData }) {
   );
 }
 
-function CampaignBlock({ row, index }) {
+function isTodayOnly(startDate, endDate) {
+  const today = new Date().toISOString().split('T')[0];
+  return startDate === today && endDate === today;
+}
+
+function CampaignBlock({ row, index, showCut }) {
   const c = row._campaign;
   return (
     <div className="demo-campaign-block">
@@ -222,7 +227,7 @@ function CampaignBlock({ row, index }) {
           <span>STP: <strong className="stp-badge">{row.stp.toLocaleString()}</strong></span>
           <span>CR %: <CRBadge value={row.cr} /></span>
           <span>STP CR %: <CRBadge value={row.stpCr} /></span>
-          <CutEditor campaign={c} />
+          {showCut && <CutEditor campaign={c} />}
         </div>
       </div>
       <div className="demo-table-wrap">
@@ -263,6 +268,7 @@ export default function HourlyReport({ filters: externalFilters, onCountChange }
   }, [filters]);
 
   const dateLabel = formatDateRangeLabel(filters?.startDate, filters?.endDate);
+  const showCut = isTodayOnly(filters?.startDate, filters?.endDate);
   const detailRows = summaryRows;
   const visibleDetails = detailRows.slice((page - 1) * CAMPAIGNS_PER_PAGE, page * CAMPAIGNS_PER_PAGE);
 
@@ -346,7 +352,12 @@ export default function HourlyReport({ filters: externalFilters, onCountChange }
             </div>
           )}
           {visibleDetails.map((row, i) => (
-            <CampaignBlock key={`${row.campaignId}-${row._date}`} row={row} index={(page - 1) * CAMPAIGNS_PER_PAGE + i} />
+            <CampaignBlock
+              key={`${row.campaignId}-${row._date}`}
+              row={row}
+              index={(page - 1) * CAMPAIGNS_PER_PAGE + i}
+              showCut={showCut}
+            />
           ))}
           <Pagination
             page={page}

@@ -21,6 +21,32 @@ app.use(
   })
 );
 
+// Proxy /postbacks/* → postback.v1mobi.com (hourlyReport)
+app.use(
+  '/postbacks',
+  createProxyMiddleware({
+    target: 'https://postback.v1mobi.com',
+    changeOrigin: true,
+    secure: true,
+    on: {
+      error: (err, req, res) => {
+        console.error('Postbacks proxy error:', err.message);
+        res.status(502).json({ error: 'Proxy error', message: err.message });
+      },
+    },
+  })
+);
+
+// Proxy /optimize/* → postback.v1mobi.com
+app.use(
+  '/optimize',
+  createProxyMiddleware({
+    target: 'https://postback.v1mobi.com',
+    changeOrigin: true,
+    secure: true,
+  })
+);
+
 // Serve built React app
 app.use(express.static(path.join(__dirname, 'dist')));
 
