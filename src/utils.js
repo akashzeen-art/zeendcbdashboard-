@@ -49,14 +49,36 @@ export function totalsFromHourlyData(hourlyData) {
   return sumHourlyTotals(parseHourlyData(hourlyData));
 }
 
+/** Local currency → USD divisors by operator code. */
+const USD_DIVISORS = {
+  SD_MTN:    600,
+  NG_MTN:    1550,
+  SAFARICOM: 130,
+};
+
+export function usdDivisorFor(operatorName) {
+  const key = (operatorName || '').toUpperCase().trim();
+  return USD_DIVISORS[key] || null;
+}
+
+/** Convert local revenue to USD; returns null when no rate is configured. */
+export function localToUsd(amount, operatorName) {
+  const divisor = usdDivisorFor(operatorName);
+  if (!divisor || !amount) return null;
+  return amount / divisor;
+}
+
 /** CR % = (conversions ÷ clicks) × 100 */
 export function calcCR(conv, clicks) {
-  return clicks > 0 ? ((conv / clicks) * 100).toFixed(2) : '0.00';
+  const denom = intVal(clicks);
+  const num = intVal(conv);
+  return denom > 0 ? ((num / denom) * 100).toFixed(2) : '0.00';
 }
 
 /** STP CR % = (STP ÷ clicks) × 100 */
 export function calcStpCR(stp, clicks) {
-  return clicks > 0 ? ((stp / clicks) * 100).toFixed(2) : '0.00';
+  const denom = intVal(clicks);
+  return denom > 0 ? ((intVal(stp) / denom) * 100).toFixed(2) : '0.00';
 }
 
 export const HOUR_SLOTS = Array.from({ length: 24 }, (_, i) => ({

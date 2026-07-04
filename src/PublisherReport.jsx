@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { fetchSummary } from './api';
+import { localToUsd } from './utils';
 import { PublisherFilterBar } from './FilterPanel';
 import Pagination from './Pagination';
 import SkeletonRows from './SkeletonRows';
@@ -40,16 +41,19 @@ function aggregateRows(apiRows) {
     row.totalRevRaw += ((r.activation || 0) + (r.renewal || 0)) * price;
   });
 
-  return Array.from(map.values()).map(row => ({
-    billerName:   row.billerName,
-    serviceName:  row.serviceName,
-    operatorName: row.operatorName,
-    operatorId:   row.operatorId,
-    activation:   row.activation  || null,
-    renewal:      row.renewal     || null,
-    totalRev:     row.totalRevRaw > 0 ? row.totalRevRaw.toLocaleString()   : null,
-    totalRevUsd:  row.totalRevRaw > 0 ? row.totalRevRaw.toFixed(2) : null,
-  }));
+  return Array.from(map.values()).map(row => {
+    const usd = localToUsd(row.totalRevRaw, row.operatorName);
+    return {
+      billerName:   row.billerName,
+      serviceName:  row.serviceName,
+      operatorName: row.operatorName,
+      operatorId:   row.operatorId,
+      activation:   row.activation  || null,
+      renewal:      row.renewal     || null,
+      totalRev:     row.totalRevRaw > 0 ? row.totalRevRaw.toLocaleString() : null,
+      totalRevUsd:  usd != null && usd > 0 ? usd.toFixed(2) : null,
+    };
+  });
 }
 
 

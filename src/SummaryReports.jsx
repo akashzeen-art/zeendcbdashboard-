@@ -5,7 +5,7 @@ import { SummaryFilterBar, DEFAULT_SUMMARY_FILTERS } from './FilterPanel';
 import Pagination from './Pagination';
 import SkeletonRows from './SkeletonRows';
 import NullCell from './NullCell';
-import { totalsFromHourlyData, calcCR, calcStpCR, billerFromHourly, passesBillingFilters, passesTrafficFilters, parseOperatorFields, parsePackFromProduct, resolveServiceName, excelNum, applySheetNumberFormats } from './utils';
+import { totalsFromHourlyData, calcCR, calcStpCR, billerFromHourly, passesBillingFilters, passesTrafficFilters, parseOperatorFields, parsePackFromProduct, resolveServiceName, localToUsd, excelNum, applySheetNumberFormats } from './utils';
 import * as XLSX from 'xlsx';
 
 const ROWS_PER_PAGE = 50;
@@ -18,7 +18,7 @@ const EXPORT_NUM_KEYS = new Set([
 const EXPORT_REV_LABELS = ['Act Rev', 'Renew Rev', 'Total Rev USD'];
 const EXPORT_COUNT_LABELS = ['Clicks', 'ACT', 'PARK', 'Dct', 'RENEW', 'Sent To Pub'];
 
-const S2S_COLS = [
+const COLS = [
   { key: 'date',              label: 'Date' },
   { key: 'geo',               label: 'Geo' },
   { key: 'operator',          label: 'Operator' },
@@ -31,35 +31,6 @@ const S2S_COLS = [
   { key: 'parkToAct',         label: 'P2A' },
   { key: 'activationPending', label: 'PARK' },
   { key: 'churn',             label: 'Dct' },
-  { key: 'sdd',               label: 'SDD' },
-  { key: 'renewal',           label: 'RENEW' },
-  { key: 'actRev',            label: 'Act Rev' },
-  { key: 'renewRev',          label: 'Renew Rev' },
-  { key: 'totalRevUsd',       label: 'Total Rev USD' },
-  { key: 'stp',               label: 'Sent To Pub' },
-  { key: 'campCR',            label: 'CR %' },
-  { key: 'stpCR',             label: 'STP CR %' },
-];
-
-const API_COLS = [
-  { key: 'date',              label: 'Date' },
-  { key: 'geo',               label: 'Geo' },
-  { key: 'operator',          label: 'Operator' },
-  { key: 'service',           label: 'Service' },
-  { key: 'pack',              label: 'Pack' },
-  { key: 'billerName',        label: 'Aggregator' },
-  { key: 'dspNetwork',        label: 'Network' },
-  { key: 'clicks',            label: 'Clicks' },
-  { key: 'sendPin',           label: 'Send Pin',       na: true },
-  { key: 'uniqPinSend',       label: 'Uniq Pin Send',  na: true },
-  { key: 'verPin',            label: 'Ver Pin',         na: true },
-  { key: 'uniqVerPin',        label: 'Uniq Ver Pin',    na: true },
-  { key: 'pinVerSuccess',     label: 'Pin Ver Success', na: true },
-  { key: 'activation',        label: 'ACT' },
-  { key: 'parkToAct',         label: 'P2A' },
-  { key: 'activationPending', label: 'PARK' },
-  { key: 'churn',             label: 'Dct' },
-  { key: 'sdd',               label: 'SDD' },
   { key: 'renewal',           label: 'RENEW' },
   { key: 'actRev',            label: 'Act Rev' },
   { key: 'renewRev',          label: 'Renew Rev' },
@@ -72,6 +43,15 @@ const API_COLS = [
 
 function billingMapKey(operatorId, serviceName, billerName) {
   return `${operatorId ?? ''}__${serviceName || ''}__${billerName || ''}`;
+}
+
+function fmtLocalRev(n) {
+  return n > 0 ? n.toFixed(2) : null;
+}
+
+function fmtUsdRev(localTotal, operatorName) {
+  const usd = localToUsd(localTotal, operatorName);
+  return usd != null && usd > 0 ? usd.toFixed(2) : null;
 }
 
 /** Aggregate billing per operator + service (price points merged). */
@@ -132,15 +112,13 @@ function billingMapToRow(g, dateLabel) {
     stp: null,
     activationPending: parking || null,
     churn: g.churn || null,
-    sdd: null,
     renewal: g.renewal || null,
     parkToAct: parking > 0 && act > 0 ? ((act / parking) * 100).toFixed(2) : null,
     campCR: null,
     stpCR: null,
-    actRev: g.actRev > 0 ? g.actRev.toFixed(2) : null,
-    renewRev: g.renewRev > 0 ? g.renewRev.toFixed(2) : null,
-    totalRevUsd: totalRev > 0 ? totalRev.toFixed(2) : null,
-    sendPin: null, uniqPinSend: null, verPin: null, uniqVerPin: null, pinVerSuccess: null,
+    actRev: fmtLocalRev(g.actRev),
+    renewRev: fmtLocalRev(g.renewRev),
+    totalRevUsd: fmtUsdRev(totalRev, g.operatorName),
     _rowKey: `billing-${dateLabel}-${g.billerName}-${g.operatorId}-${g.serviceName}`,
     _billingKey: billingMapKey(g.operatorId, g.serviceName, g.billerName),
   };
@@ -157,23 +135,31 @@ function applyBillingToRow(row, billing) {
   row.churn = billing.churn || null;
   row.renewal = billing.renewal || null;
   row.parkToAct = parking > 0 && act > 0 ? ((act / parking) * 100).toFixed(2) : null;
-  row.actRev = billing.actRev > 0 ? billing.actRev.toFixed(2) : null;
-  row.renewRev = billing.renewRev > 0 ? billing.renewRev.toFixed(2) : null;
-  row.totalRevUsd = totalRev > 0 ? totalRev.toFixed(2) : null;
+  row.actRev = fmtLocalRev(billing.actRev);
+  row.renewRev = fmtLocalRev(billing.renewRev);
+  row.totalRevUsd = fmtUsdRev(totalRev, billing.operatorName);
   row.campCR = calcCR(act, clicks);
   row.stpCR = calcStpCR(row.stp ?? 0, clicks);
 }
 
-function serviceTrafficKey(geo, operator, service, agg) {
-  return `${geo || ''}__${operator || ''}__${service || ''}__${agg || ''}`;
+function trafficRowKey(geo, operator, service, pack, network, agg) {
+  return `${geo || ''}__${operator || ''}__${service || ''}__${pack || ''}__${network || ''}__${agg || ''}`;
 }
 
-function joinUniqueLabels(set) {
-  if (!set?.size) return null;
-  return [...set].sort((a, b) => a.localeCompare(b)).join(', ');
+/** Prefer a row with real clicks; billing has no network dimension. */
+function pickBillingRow(rows) {
+  const withClicks = rows.filter(r => (r.clicks || 0) > 0);
+  const pool = withClicks.length ? withClicks : rows;
+  return pool.reduce((best, row) => {
+    if (!best) return row;
+    if ((row.clicks || 0) !== (best.clicks || 0)) {
+      return (row.clicks || 0) > (best.clicks || 0) ? row : best;
+    }
+    return row._conversions > best._conversions ? row : best;
+  }, null);
 }
 
-/** One unified row per date + geo + operator + service + aggregator (networks merged). */
+/** One row per network; billing from API on the primary traffic row for that service. */
 function buildDayRows(day, apiRows, hourlyForDay, filters) {
   const billingMap = buildBillingMap(apiRows, filters);
   const trafficMap = new Map();
@@ -193,7 +179,7 @@ function buildDayRows(day, apiRows, hourlyForDay, filters) {
     const network = c.dspName || '';
     const agg = meta?.billerName || '';
 
-    const key = serviceTrafficKey(geo, operator, service, agg);
+    const key = trafficRowKey(geo, operator, service, pack, network, agg);
 
     if (!trafficMap.has(key)) {
       trafficMap.set(key, {
@@ -201,9 +187,9 @@ function buildDayRows(day, apiRows, hourlyForDay, filters) {
         geo,
         operator,
         service,
+        pack: pack || null,
         billerName: meta?.billerName || null,
-        _networks: new Set(),
-        _packs: new Set(),
+        dspNetwork: network || null,
         clicks: 0,
         stp: 0,
         _conversions: 0,
@@ -216,44 +202,52 @@ function buildDayRows(day, apiRows, hourlyForDay, filters) {
         actRev: null,
         renewRev: null,
         totalRevUsd: null,
-        sdd: null,
         campCR: null,
         stpCR: null,
-        sendPin: null, uniqPinSend: null, verPin: null, uniqVerPin: null, pinVerSuccess: null,
         _rowKey: `row-${day}-${key}`,
       });
     }
 
     const row = trafficMap.get(key);
-    if (network) row._networks.add(network);
-    if (pack) row._packs.add(pack);
     row.clicks += t.clicks;
     row.stp += t.stp;
     row._conversions += t.conversions;
   });
 
-  const rows = [];
+  const rows = [...trafficMap.values()];
+  const byBillingKey = new Map();
 
-  trafficMap.forEach(row => {
-    row.pack = joinUniqueLabels(row._packs);
-    row.dspNetwork = joinUniqueLabels(row._networks);
-    delete row._networks;
-    delete row._packs;
+  rows.forEach(row => {
+    const bk = row._billingKey;
+    if (!byBillingKey.has(bk)) byBillingKey.set(bk, []);
+    byBillingKey.get(bk).push(row);
+  });
 
-    const billing = billingMap.get(row._billingKey);
+  byBillingKey.forEach((groupRows, bk) => {
+    const billing = billingMap.get(bk);
     if (billing) {
-      applyBillingToRow(row, billing);
-      billingAssigned.add(row._billingKey);
+      const primary = pickBillingRow(groupRows);
+      applyBillingToRow(primary, billing);
+      billingAssigned.add(bk);
+      groupRows.forEach(row => {
+        if (row === primary) return;
+        row.campCR = calcCR(0, row.clicks);
+        row.stpCR = calcStpCR(row.stp, row.clicks);
+      });
     } else {
-      row.activation = row._conversions || null;
-      row.campCR = calcCR(row._conversions, row.clicks);
-      row.stpCR = calcStpCR(row.stp, row.clicks);
+      groupRows.forEach(row => {
+        row.activation = row._conversions || null;
+        row.campCR = calcCR(row._conversions, row.clicks);
+        row.stpCR = calcStpCR(row.stp, row.clicks);
+      });
     }
+  });
+
+  rows.forEach(row => {
     row.clicks = row.clicks || null;
     row.stp = row.stp || null;
     delete row._conversions;
     delete row._billingKey;
-    rows.push(row);
   });
 
   billingMap.forEach((billing, bk) => {
@@ -302,7 +296,9 @@ function sortRows(rows) {
     if (geoCmp !== 0) return geoCmp;
     const svcCmp = String(a.service || '').localeCompare(String(b.service || ''));
     if (svcCmp !== 0) return svcCmp;
-    return String(a.pack || '').localeCompare(String(b.pack || ''));
+    const packCmp = String(a.pack || '').localeCompare(String(b.pack || ''));
+    if (packCmp !== 0) return packCmp;
+    return String(a.dspNetwork || '').localeCompare(String(b.dspNetwork || ''));
   });
 }
 
@@ -315,7 +311,6 @@ function CRCell({ v }) {
 function Cell({ col, row }) {
   const v = row[col.key];
   if (col.key === 'campCR' || col.key === 'stpCR' || col.key === 'parkToAct') return <CRCell v={v} />;
-  if (col.na) return <span className="ct-muted" style={{ fontSize: '.72rem' }}>N/A</span>;
   if (v == null) return <NullCell />;
   if (col.key === 'date')     return <span className="ct-date">{formatTableDate(v)}</span>;
   if (col.key === 'geo')      return v ? <span className="ct-network">{v}</span> : <NullCell />;
@@ -333,7 +328,6 @@ function Cell({ col, row }) {
 }
 
 export default function SummaryReports() {
-  const [subTab,  setSubTab]  = useState('s2s');
   const [filters, setFilters] = useState(DEFAULT_SUMMARY_FILTERS);
   const [rows,    setRows]    = useState([]);
   const [page,    setPage]    = useState(1);
@@ -364,12 +358,10 @@ export default function SummaryReports() {
   const handleApply = (f) => { setFilters(f); setPage(1); setRows([]); loadData(f); };
   const handlePageChange = (p) => setPage(p);
 
-  const cols = subTab === 's2s' ? S2S_COLS : API_COLS;
   const dateLabel = formatDateRangeLabel(filters.startDate, filters.endDate);
   const visibleRows = rows.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
 
-  const exportRow = (r) => Object.fromEntries(cols.map(c => {
-    if (c.na) return [c.label, 'N/A'];
+  const exportRow = (r) => Object.fromEntries(COLS.map(c => {
     let val = r[c.key];
     if (c.key === 'date' && val) val = formatTableDate(val);
     else if (c.key === 'billerName') val = aggregatorLabel(val);
@@ -385,9 +377,9 @@ export default function SummaryReports() {
     applySheetNumberFormats(ws, XLSX, EXPORT_REV_LABELS, '#,##0.00');
     applySheetNumberFormats(ws, XLSX, EXPORT_COUNT_LABELS, '#,##0');
     applySheetNumberFormats(ws, XLSX, ['CR %', 'STP CR %', 'P2A'], '0.00');
-    ws['!cols'] = cols.map(() => ({ wch: 18 }));
-    XLSX.utils.book_append_sheet(wb, ws, subTab === 's2s' ? 'S2S Report' : 'API Report');
-    XLSX.writeFile(wb, `summary_${subTab}_${filters.startDate}_${filters.endDate}.xlsx`);
+    ws['!cols'] = COLS.map(() => ({ wch: 18 }));
+    XLSX.utils.book_append_sheet(wb, ws, 'S2S Report');
+    XLSX.writeFile(wb, `summary_${filters.startDate}_${filters.endDate}.xlsx`);
   };
 
   return (
@@ -397,12 +389,7 @@ export default function SummaryReports() {
 
       <div className="demo-report-bar">
         <div className="demo-report-tabs">
-          <button type="button" className={`demo-report-tab ${subTab === 's2s' ? 'active' : ''}`} onClick={() => setSubTab('s2s')}>
-            S2S Report
-          </button>
-          <button type="button" className={`demo-report-tab ${subTab === 'api' ? 'active' : ''}`} onClick={() => setSubTab('api')}>
-            API Report
-          </button>
+          <span className="demo-report-tab active">S2S Report</span>
         </div>
         <span className="demo-report-meta">📅 {dateLabel}</span>
       </div>
@@ -418,17 +405,17 @@ export default function SummaryReports() {
           <table className="demo-table">
             <thead>
               <tr className="demo-thead-row">
-                {cols.map(c => (
-                  <th key={c.key} className={c.na ? 'demo-th-dummy' : ''}>{c.label}</th>
+                {COLS.map(c => (
+                  <th key={c.key}>{c.label}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <SkeletonRows cols={cols.length} rows={8} />
+                <SkeletonRows cols={COLS.length} rows={8} />
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={cols.length}>
+                  <td colSpan={COLS.length}>
                     <div className="no-data-inner" style={{ padding: '2.5rem' }}>
                       <div className="no-data-icon">📭</div>
                       <div className="no-data-text">No data found</div>
@@ -439,8 +426,8 @@ export default function SummaryReports() {
               ) : (
                 visibleRows.map((row) => (
                   <tr key={row._rowKey}>
-                    {cols.map(c => (
-                      <td key={c.key} className={c.na ? 'demo-td-dummy' : ''}>
+                    {COLS.map(c => (
+                      <td key={c.key}>
                         <Cell col={c} row={row} />
                       </td>
                     ))}
