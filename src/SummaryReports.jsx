@@ -69,12 +69,6 @@ const API_COLS = [
   { key: 'stpCR',             label: 'STP CR %' },
 ];
 
-/** Billing activation and hourly conversions are the same metric. */
-function unifiedActivation(billingAct, hourlyConversions) {
-  const v = billingAct || hourlyConversions || 0;
-  return v || null;
-}
-
 
 function billingMapKey(operatorId, serviceName, billerName) {
   return `${operatorId ?? ''}__${serviceName || ''}__${billerName || ''}`;
@@ -157,9 +151,8 @@ function applyBillingToRow(row, billing) {
   const parking = billing.activationPending;
   const totalRev = billing.actRev + billing.renewRev;
   const clicks = row.clicks || 0;
-  const conversions = row._conversions || 0;
 
-  row.activation = unifiedActivation(act, conversions);
+  row.activation = act || null;
   row.activationPending = parking || null;
   row.churn = billing.churn || null;
   row.renewal = billing.renewal || null;
@@ -167,11 +160,20 @@ function applyBillingToRow(row, billing) {
   row.actRev = billing.actRev > 0 ? billing.actRev.toFixed(2) : null;
   row.renewRev = billing.renewRev > 0 ? billing.renewRev.toFixed(2) : null;
   row.totalRevUsd = totalRev > 0 ? totalRev.toFixed(2) : null;
-  row.campCR = calcCR(row.activation ?? 0, clicks);
+  row.campCR = calcCR(act, clicks);
   row.stpCR = calcStpCR(row.stp ?? 0, clicks);
 }
 
-/** One unified row per date + geo + operator + service + pack + network + aggregator */
+function serviceTrafficKey(geo, operator, service, agg) {
+  return `${geo || ''}__${operator || ''}__${service || ''}__${agg || ''}`;
+}
+
+function joinUniqueLabels(set) {
+  if (!set?.size) return null;
+  return [...set].sort((a, b) => a.localeCompare(b)).join(', ');
+}
+
+/** One unified row per date + geo + operator + service + aggregator (networks merged). */
 function buildDayRows(day, apiRows, hourlyForDay, filters) {
   const billingMap = buildBillingMap(apiRows, filters);
   const trafficMap = new Map();
@@ -191,7 +193,7 @@ function buildDayRows(day, apiRows, hourlyForDay, filters) {
     const network = c.dspName || '';
     const agg = meta?.billerName || '';
 
-    const key = `${geo}__${operator}__${service}__${pack || ''}__${network}__${agg}`;
+    const key = serviceTrafficKey(geo, operator, service, agg);
 
     if (!trafficMap.has(key)) {
       trafficMap.set(key, {
@@ -199,13 +201,12 @@ function buildDayRows(day, apiRows, hourlyForDay, filters) {
         geo,
         operator,
         service,
-        pack,
         billerName: meta?.billerName || null,
-        dspNetwork: network || null,
+        _networks: new Set(),
+        _packs: new Set(),
         clicks: 0,
         stp: 0,
         _conversions: 0,
-        _operatorId: meta?.operatorId ?? null,
         _billingKey: billingMapKey(meta?.operatorId, service, meta?.billerName),
         activation: null,
         activationPending: null,
@@ -224,6 +225,8 @@ function buildDayRows(day, apiRows, hourlyForDay, filters) {
     }
 
     const row = trafficMap.get(key);
+    if (network) row._networks.add(network);
+    if (pack) row._packs.add(pack);
     row.clicks += t.clicks;
     row.stp += t.stp;
     row._conversions += t.conversions;
@@ -232,19 +235,23 @@ function buildDayRows(day, apiRows, hourlyForDay, filters) {
   const rows = [];
 
   trafficMap.forEach(row => {
+    row.pack = joinUniqueLabels(row._packs);
+    row.dspNetwork = joinUniqueLabels(row._networks);
+    delete row._networks;
+    delete row._packs;
+
     const billing = billingMap.get(row._billingKey);
-    if (billing && !billingAssigned.has(row._billingKey)) {
+    if (billing) {
       applyBillingToRow(row, billing);
       billingAssigned.add(row._billingKey);
     } else {
-      row.activation = unifiedActivation(null, row._conversions);
+      row.activation = row._conversions || null;
       row.campCR = calcCR(row._conversions, row.clicks);
       row.stpCR = calcStpCR(row.stp, row.clicks);
     }
     row.clicks = row.clicks || null;
     row.stp = row.stp || null;
     delete row._conversions;
-    delete row._operatorId;
     delete row._billingKey;
     rows.push(row);
   });
