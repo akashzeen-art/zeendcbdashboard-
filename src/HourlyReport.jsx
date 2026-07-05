@@ -12,8 +12,9 @@ import {
   HOUR_SLOTS,
   passesTrafficFilters,
   CUT_OPTIONS,
+  downloadCsv,
+  excelNum,
 } from './utils';
-import * as XLSX from 'xlsx';
 
 const CAMPAIGNS_PER_PAGE = 5;
 
@@ -272,41 +273,21 @@ export default function HourlyReport({ filters: externalFilters, onCountChange }
   const detailRows = summaryRows;
   const visibleDetails = detailRows.slice((page - 1) * CAMPAIGNS_PER_PAGE, page * CAMPAIGNS_PER_PAGE);
 
-  const exportAllExcel = () => {
+  const exportCsv = () => {
     if (!summaryRows.length) return;
-    const wb = XLSX.utils.book_new();
-
-    const summarySheet = summaryRows.map(r => ({
-      Date: r.date,
-      Campaign: r.campaign,
-      Network: r.network,
-      'Campaign ID': r.campaignId,
-      Clicks: r.clicks,
-      Conversions: r.conversions,
-      'Sent To Pub': r.stp,
-      'CR %': r.cr,
-      'STP CR %': r.stpCr,
-    }));
-    const wsSummary = XLSX.utils.json_to_sheet(summarySheet);
-    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
-
-    summaryRows.forEach((r, i) => {
-      const parsed = parseHourlyData(r._hourlyData);
-      const tot = totalsFromHourlyData(r._hourlyData);
-      const header = ['Metric', 'Total', ...HOUR_SLOTS.map(h => h.slot)];
-      const rows = [
-        ['Clicks', tot.clicks, ...HOUR_SLOTS.map(h => parsed.clicks[h.index])],
-        ['Conversions', tot.conversions, ...HOUR_SLOTS.map(h => parsed.conversions[h.index])],
-        ['Sent To Pub', tot.stp, ...HOUR_SLOTS.map(h => parsed.stp[h.index])],
-        ['CR %', calcCR(tot.conversions, tot.clicks), ...HOUR_SLOTS.map(h => calcCR(parsed.conversions[h.index], parsed.clicks[h.index]))],
-        ['STP CR %', calcStpCR(tot.stp, tot.clicks), ...HOUR_SLOTS.map(h => calcStpCR(parsed.stp[h.index], parsed.clicks[h.index]))],
-      ];
-      const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
-      const sheetName = `C${r.campaignId}_${r.date}`.slice(0, 31);
-      XLSX.utils.book_append_sheet(wb, ws, sheetName || `Sheet${i + 1}`);
-    });
-
-    XLSX.writeFile(wb, `hourly_vas_${filters.startDate}_${filters.endDate}.xlsx`);
+    const headers = ['Date', 'Campaign', 'Network', 'Campaign ID', 'Clicks', 'Conversions', 'Sent To Pub', 'CR %', 'STP CR %'];
+    const rows = summaryRows.map(r => [
+      r.date,
+      r.campaign,
+      r.network,
+      r.campaignId,
+      excelNum(r.clicks),
+      excelNum(r.conversions),
+      excelNum(r.stp),
+      excelNum(r.cr),
+      excelNum(r.stpCr),
+    ]);
+    downloadCsv(`hourly_vas_${filters.startDate}_${filters.endDate}.csv`, headers, rows);
   };
 
   return (
@@ -314,8 +295,8 @@ export default function HourlyReport({ filters: externalFilters, onCountChange }
       {standalone && (
         <HourlyFilterBar
           onApply={setFilters}
-          onExport={exportAllExcel}
-          exportDisabled={!summaryRows.length}
+          onExport={exportCsv}
+          exportDisabled={loading || !summaryRows.length}
         />
       )}
       {error && <div className="error-box">⚠️ {error}</div>}

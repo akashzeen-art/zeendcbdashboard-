@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, startOfDay, endOfDay } from 'date-fns';
-import { fetchFilterOptions, fetchHourlyReport, fetchSummary } from './api';
-import { billerFromHourly } from './utils';
+import { fetchHourlyReport, fetchSummary } from './api';
+import { billerFromHourly, parseOperatorFields } from './utils';
 import DateRangePicker from './DateRangePicker';
 
 const today = new Date().toISOString().split('T')[0];
@@ -60,6 +60,44 @@ function buildOperators(rows) {
   ).values()].sort((a, b) => a.label.localeCompare(b.label));
 }
 
+function buildOperatorsFromHourly(hourlyRows) {
+  const map = new Map();
+  (hourlyRows || []).forEach(c => {
+    const meta = billerFromHourly(c);
+    if (!meta?.operatorId) return;
+    const id = String(meta.operatorId);
+    if (map.has(id)) return;
+    const { geo, operator } = parseOperatorFields(meta.operatorName, meta.operatorId);
+    const label = geo && operator
+      ? `${geo} · ${operator} (${id})`
+      : `${meta.operatorName || id} (${id})`;
+    map.set(id, { value: id, label });
+  });
+  return [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function buildCampaignOptions(hourlyRows) {
+  const map = new Map();
+  (hourlyRows || []).forEach(c => {
+    const name = (c.productname || '').trim() || `Campaign ${c.campaignId}`;
+    const key = `${c.campaignId}__${name}`;
+    if (map.has(key)) return;
+    map.set(key, {
+      value: name,
+      label: `${name} · ${c.dspName || '—'} · #${c.campaignId}`,
+    });
+  });
+  return [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function mergeOperatorOptions(billingOps, hourlyOps) {
+  const map = new Map();
+  [...(billingOps || []), ...(hourlyOps || [])].forEach(opt => {
+    if (opt?.value) map.set(String(opt.value), opt);
+  });
+  return [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
+}
+
 function deriveOptions(billingRows, hourlyRows, selected = {}) {
   const { billerName, operatorId, dspNetwork, serviceName } = selected;
 
@@ -83,7 +121,10 @@ function deriveOptions(billingRows, hourlyRows, selected = {}) {
 
   const billingForOps = billingFiltered.length ? billingFiltered : (billingRows || []);
 
-  const operators = buildOperators(billingForOps);
+  const operators = mergeOperatorOptions(
+    buildOperators(billingForOps),
+    buildOperatorsFromHourly(hourlyFiltered.length ? hourlyFiltered : hourlyRows)
+  );
 
   const products = toOptions(new Set([
     ...billingFiltered.map(r => r.serviceName),
@@ -100,9 +141,7 @@ function deriveOptions(billingRows, hourlyRows, selected = {}) {
     ...hourlyFiltered.map(c => billerFromHourly(c)?.billerName),
   ].filter(Boolean)));
 
-  const campaigns = toOptions(new Set(
-    hourlyFiltered.map(c => c.productname).filter(Boolean)
-  ));
+  const campaigns = buildCampaignOptions(hourlyFiltered);
 
   return { operators, products, networks, aggregators, campaigns };
 }
@@ -118,7 +157,7 @@ export function useReportFilterOptions(startDate, endDate) {
     setLoading(true);
     try {
       const [summaryRes, hourly] = await Promise.all([
-        fetchFilterOptions().catch(() => ({ data: [] })),
+        fetchSummary({ startDate: start, endDate: end, page: 1, size: 500 }).catch(() => ({ data: [] })),
         fetchHourlyReport(start, end).catch(() => []),
       ]);
       dataRef.current = {
@@ -308,8 +347,8 @@ export function HourlyFilterBar({ onApply, onExport, exportDisabled = true }) {
   return (
     <div className="demo-filter-panel">
       <form onSubmit={handleSubmit}>
-        <div className="demo-filter-grid">
-          <div className="demo-field">
+        <div className="demo-filter-grid demo-filter-grid-hourly">
+          <div className="demo-field demo-field-span-2">
             <label className="demo-label">Select Dates <span className="req">*</span></label>
             <DateRangePicker value={dateRange} onChange={handleDate} />
           </div>
@@ -331,16 +370,16 @@ export function HourlyFilterBar({ onApply, onExport, exportDisabled = true }) {
           <div className="demo-field demo-field-actions">
             <label className="demo-label">&nbsp;</label>
             <div className="demo-action-row">
-              <button type="submit" className="demo-btn demo-btn-primary" disabled={submitting}>
+              <button type="submit" className="demo-btn demo-btn-primary" disabled={submitting || loading}>
                 {submitting ? 'Loading…' : 'Submit'}
               </button>
-              <button type="button" className="demo-btn demo-btn-secondary" onClick={handleReset}>Reset</button>
+              <button type="button" className="demo-btn demo-btn-secondary" onClick={handleReset} disabled={loading}>Reset</button>
             </div>
           </div>
           {onExport && (
             <div className="demo-field demo-field-actions">
               <label className="demo-label">&nbsp;</label>
-              <button type="button" className="demo-btn demo-btn-primary" onClick={onExport} disabled={exportDisabled}>
+              <button type="button" className="demo-btn demo-btn-primary" onClick={onExport} disabled={exportDisabled || loading}>
                 Csv Download
               </button>
             </div>
