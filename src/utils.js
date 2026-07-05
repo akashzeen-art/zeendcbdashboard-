@@ -192,10 +192,29 @@ export function passesTrafficFilters(c, filters) {
 }
 
 export function passesBillingFilters(r, filters) {
-  if (filters.campaignName) return false;
   if (filters.billerName && r.billerName !== filters.billerName) return false;
   if (filters.operatorId && String(r.operatorId) !== String(filters.operatorId)) return false;
   if (filters.serviceName && r.serviceName !== filters.serviceName) return false;
+  return true;
+}
+
+/** Groups (biller + operator + service) that have the selected campaignId in summary-details. */
+export function billingGroupsForCampaign(detailRows, campaignId) {
+  const set = new Set();
+  if (!campaignId) return set;
+  (detailRows || []).forEach(r => {
+    if (String(r.campaignId) !== String(campaignId)) return;
+    set.add(billingGroupKey(r.billerName, r.operatorId, r.serviceName));
+  });
+  return set;
+}
+
+export function passesSummaryFilters(row, filters, campaignGroups) {
+  if (!passesBillingFilters(row, filters)) return false;
+  if (filters.campaignName) {
+    const key = billingGroupKey(row.billerName, row.operatorId, row.serviceName);
+    if (!campaignGroups?.has(key)) return false;
+  }
   return true;
 }
 

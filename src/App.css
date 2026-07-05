@@ -1889,6 +1889,34 @@ tbody tr:hover .ct-td-dummy { background: #f1f5f9 !important; }
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+/* Summary — compact date + actions row */
+.demo-filter-grid-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: .75rem 1.25rem;
+}
+
+.demo-filter-panel-summary {
+  overflow: visible;
+}
+
+.demo-filter-grid-summary .demo-field-date {
+  flex: 1 1 320px;
+  max-width: 480px;
+  min-width: 260px;
+  position: relative;
+  z-index: 50;
+}
+
+.demo-filter-grid-summary .demo-field-actions {
+  flex: 0 0 auto;
+}
+
+.demo-filter-grid-summary .demo-action-row {
+  align-items: center;
+}
+
 .demo-field-span-2 {
   grid-column: span 2;
 }

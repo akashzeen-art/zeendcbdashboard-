@@ -42,14 +42,14 @@ export async function fetchSummaryDetails(filters) {
 }
 
 /** Fetch all summary-details rows for a date range (paginated). */
-export async function fetchAllSummaryDetails(startDate, endDate) {
+export async function fetchAllSummaryDetails(startDate, endDate, extra = {}) {
   const pageSize = 500;
   let page = 1;
   let all = [];
   let total = Infinity;
 
   while (all.length < total) {
-    const res = await fetchSummaryDetails({ startDate, endDate, page, size: pageSize });
+    const res = await fetchSummaryDetails({ startDate, endDate, page, size: pageSize, ...extra });
     const batch = res.data || [];
     all = all.concat(batch);
     total = res.total ?? all.length;

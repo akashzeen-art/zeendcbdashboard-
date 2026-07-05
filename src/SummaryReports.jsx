@@ -13,6 +13,8 @@ import {
   billingGroupKey,
   groupParkingFromDetails,
   groupChurnFromDetails,
+  passesSummaryFilters,
+  billingGroupsForCampaign,
 } from './utils';
 
 const ROWS_PER_PAGE = 50;
@@ -43,7 +45,6 @@ const COLS = [
   { key: 'renewRev',          label: 'Renew Rev' },
   { key: 'totalRev',          label: 'Total Rev' },
   { key: 'totalRevUsd',       label: 'Total Rev USD' },
-  { key: 'campCR',            label: 'Camp CR' },
 ];
 
 /** Preserve API zero; only null/undefined → empty cell. */
@@ -71,7 +72,6 @@ function mapSummaryRow(r, dateLabel) {
   const actRev = act * price;
   const renewRev = ren * price;
   const totalRev = actRev + renewRev;
-  const lifecycleTotal = act + ren + churn;
   const isParkingBucket = price <= 0;
 
   return {
@@ -90,9 +90,6 @@ function mapSummaryRow(r, dateLabel) {
     renewRev: fmtLocalRev(renewRev),
     totalRev: fmtLocalRev(totalRev),
     totalRevUsd: fmtUsdRev(totalRev, r.operatorName),
-    campCR: !isParkingBucket && act > 0 && lifecycleTotal > 0
-      ? ((act / lifecycleTotal) * 100).toFixed(2)
-      : null,
     _isParkingBucket: isParkingBucket,
     _rowKey: `${dateLabel}-${r.billerName}-${r.operatorId}-${r.serviceName}-${r.pricePoint}`,
   };
@@ -197,15 +194,8 @@ function sortRows(rows) {
   });
 }
 
-function CRCell({ v }) {
-  if (v == null) return <NullCell />;
-  const n = parseFloat(v);
-  return <span className={`cr-badge ${n >= 10 ? 'cr-good' : n >= 3 ? 'cr-mid' : 'cr-low'}`}>{v}%</span>;
-}
-
 function Cell({ col, row }) {
   const v = row[col.key];
-  if (col.key === 'campCR' || col.key === 'parkToAct') return <CRCell v={v} />;
   if (v == null) return <NullCell />;
   if (col.key === 'date') return <span className="ct-date">{formatTableDate(v)}</span>;
   if (col.key === 'serviceName') return <span className="td-primary">{v}</span>;
@@ -223,14 +213,37 @@ function Cell({ col, row }) {
   return typeof v === 'number' ? v.toLocaleString() : v;
 }
 
-async function fetchSummaryForRange(startDate, endDate) {
+function summaryApiParams(filters, day) {
+  return {
+    startDate: day,
+    endDate: day,
+    page: 1,
+    size: 500,
+    ...(filters.billerName && { billerName: filters.billerName }),
+    ...(filters.operatorId && { operatorId: filters.operatorId }),
+    ...(filters.serviceName && { serviceName: filters.serviceName }),
+  };
+}
+
+async function fetchSummaryForRange(filters) {
+  const { startDate, endDate } = filters;
+
   async function loadDay(day) {
     try {
+      const apiParams = summaryApiParams(filters, day);
       const [summaryRes, details] = await Promise.all([
-        fetchSummary({ startDate: day, endDate: day, page: 1, size: 500 }),
-        fetchAllSummaryDetails(day, day).catch(() => []),
+        fetchSummary(apiParams),
+        fetchAllSummaryDetails(day, day, {
+          ...(filters.billerName && { billerName: filters.billerName }),
+          ...(filters.operatorId && { operatorId: filters.operatorId }),
+          ...(filters.serviceName && { serviceName: filters.serviceName }),
+        }).catch(() => []),
       ]);
-      return buildDayRows(day, summaryRes.data || [], details);
+      const campaignGroups = filters.campaignName
+        ? billingGroupsForCampaign(details || [], filters.campaignName)
+        : null;
+      const rows = buildDayRows(day, summaryRes.data || [], details || []);
+      return rows.filter(r => passesSummaryFilters(r, filters, campaignGroups));
     } catch {
       return [];
     }
@@ -255,7 +268,7 @@ export default function SummaryReports() {
     setLoading(true);
     setError('');
 
-    fetchSummaryForRange(f.startDate, f.endDate)
+    fetchSummaryForRange(f)
       .then(data => setRows(sortRows(data)))
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
@@ -277,7 +290,7 @@ export default function SummaryReports() {
       if (c.key === 'date' && val) val = formatTableDate(val);
       else if (c.key === 'billerName') val = aggregatorLabel(val);
       else if (c.key === 'operatorName') val = operatorExportLabel(val, r.operatorId);
-      else if (EXPORT_NUM_KEYS.has(c.key) || c.key === 'campCR' || c.key === 'parkToAct') {
+      else if (EXPORT_NUM_KEYS.has(c.key) || c.key === 'parkToAct') {
         val = excelNum(val);
       }
       return val ?? '';

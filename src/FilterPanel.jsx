@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, startOfDay, endOfDay } from 'date-fns';
-import { fetchHourlyReport, fetchSummary } from './api';
+import { fetchHourlyReport, fetchSummary, fetchAllSummaryDetails } from './api';
 import { billerFromHourly, parseOperatorFields } from './utils';
 import DateRangePicker from './DateRangePicker';
 
@@ -12,6 +12,11 @@ const summaryDateRange = todayRange;
 export const DEFAULT_SUMMARY_FILTERS = {
   startDate: today,
   endDate: today,
+  operatorId: '',
+  serviceName: '',
+  dspNetwork: '',
+  billerName: '',
+  campaignName: '',
 };
 
 export const DEFAULT_HOURLY_FILTERS = {
@@ -146,6 +151,85 @@ function deriveOptions(billingRows, hourlyRows, selected = {}) {
   return { operators, products, networks, aggregators, campaigns };
 }
 
+function buildCampaignOptionsFromDetails(detailRows) {
+  const map = new Map();
+  (detailRows || []).forEach(r => {
+    if (!r.campaignId) return;
+    const id = String(r.campaignId);
+    if (map.has(id)) return;
+    map.set(id, {
+      value: id,
+      label: `${r.serviceName || 'Service'} · #${r.campaignId}`,
+    });
+  });
+  return [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function deriveSummaryOptions(billingRows, detailRows, selected = {}) {
+  const { billerName, operatorId, serviceName, campaignName } = selected;
+
+  const billingFiltered = (billingRows || []).filter(r => {
+    if (billerName && r.billerName !== billerName) return false;
+    if (operatorId && String(r.operatorId) !== operatorId) return false;
+    if (serviceName && r.serviceName !== serviceName) return false;
+    return true;
+  });
+
+  const detailFiltered = (detailRows || []).filter(r => {
+    if (billerName && r.billerName !== billerName) return false;
+    if (operatorId && String(r.operatorId) !== operatorId) return false;
+    if (serviceName && r.serviceName !== serviceName) return false;
+    if (campaignName && String(r.campaignId) !== campaignName) return false;
+    return true;
+  });
+
+  const billingForOpts = billingFiltered.length ? billingFiltered : (billingRows || []);
+  const detailForCampaigns = detailFiltered.length ? detailFiltered : (detailRows || []);
+
+  const operators = buildOperators(billingForOpts);
+  const products = toOptions(new Set(billingForOpts.map(r => r.serviceName).filter(Boolean)));
+  const aggregators = toOptions(new Set(billingForOpts.map(r => r.billerName).filter(Boolean)));
+  const campaigns = buildCampaignOptionsFromDetails(detailForCampaigns);
+
+  return { operators, products, networks: [], aggregators, campaigns };
+}
+
+/** Summary report filter options — billing summary + summary-details APIs only. */
+export function useSummaryFilterOptions(startDate, endDate) {
+  const [options, setOptions] = useState(EMPTY_OPTS);
+  const [loading, setLoading] = useState(true);
+  const dataRef = useRef({ billing: [], details: [] });
+
+  const load = useCallback(async (start, end) => {
+    if (!start || !end) return;
+    setLoading(true);
+    try {
+      const [summaryRes, details] = await Promise.all([
+        fetchSummary({ startDate: start, endDate: end, page: 1, size: 500 }).catch(() => ({ data: [] })),
+        fetchAllSummaryDetails(start, end).catch(() => []),
+      ]);
+      dataRef.current = {
+        billing: summaryRes.data || [],
+        details: details || [],
+      };
+      setOptions(deriveSummaryOptions(dataRef.current.billing, dataRef.current.details));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const cascade = useCallback((selected) => {
+    const { billing, details } = dataRef.current;
+    setOptions(deriveSummaryOptions(billing, details, selected));
+  }, []);
+
+  useEffect(() => {
+    load(startDate, endDate);
+  }, [startDate, endDate, load]);
+
+  return { ...options, loading, cascade, reload: () => load(startDate, endDate) };
+}
+
 /** Load billing + hourly options for the selected date range. */
 export function useReportFilterOptions(startDate, endDate) {
   const [options, setOptions] = useState(EMPTY_OPTS);
@@ -242,13 +326,33 @@ export function SummaryFilterBar({ onApply, onExport, exportDisabled = true }) {
   const [dateRange, setDateRange] = useState(summaryDateRange);
   const [f, setF] = useState(DEFAULT_SUMMARY_FILTERS);
   const [submitting, setSubmitting] = useState(false);
+  const { operators, products, aggregators, campaigns, loading, cascade } =
+    useSummaryFilterOptions(f.startDate, f.endDate);
+
+  const set = (k) => (v) => {
+    setF(prev => {
+      const next = { ...prev, [k]: v };
+      if (k === 'billerName') {
+        next.operatorId = '';
+        next.serviceName = '';
+        next.campaignName = '';
+      }
+      if (k === 'operatorId') { next.serviceName = ''; next.campaignName = ''; }
+      if (k === 'serviceName') { next.campaignName = ''; }
+      cascade(next);
+      return next;
+    });
+  };
 
   const handleDate = (r) => {
     setDateRange(r);
-    setF({
+    const next = {
+      ...DEFAULT_SUMMARY_FILTERS,
       startDate: format(r.s, 'yyyy-MM-dd'),
       endDate: format(r.e, 'yyyy-MM-dd'),
-    });
+    };
+    setF(next);
+    cascade(next);
   };
 
   const handleSubmit = (e) => {
@@ -261,30 +365,43 @@ export function SummaryFilterBar({ onApply, onExport, exportDisabled = true }) {
   const handleReset = () => {
     setDateRange(summaryDateRange);
     setF(DEFAULT_SUMMARY_FILTERS);
+    cascade(DEFAULT_SUMMARY_FILTERS);
     onApply(DEFAULT_SUMMARY_FILTERS);
   };
 
   return (
     <div className="demo-filter-panel">
       <form onSubmit={handleSubmit}>
-        <div className="demo-filter-grid">
-          <div className="demo-field">
+        <div className="demo-filter-grid demo-filter-grid-hourly">
+          <div className="demo-field demo-field-span-2">
             <label className="demo-label">Select Dates <span className="req">*</span></label>
             <DateRangePicker value={dateRange} onChange={handleDate} />
+          </div>
+          <div className="demo-field">
+            <Dropdown label="Please Select Aggregator" value={f.billerName} options={aggregators} onChange={set('billerName')} placeholder="-- All Aggregators --" loading={loading} />
+          </div>
+          <div className="demo-field">
+            <Dropdown label="Please select Operator" value={f.operatorId} options={operators} onChange={set('operatorId')} placeholder="-- Select Operator --" loading={loading} />
+          </div>
+          <div className="demo-field">
+            <Dropdown label="Please select product" value={f.serviceName} options={products} onChange={set('serviceName')} placeholder="-- All Products --" loading={loading} />
+          </div>
+          <div className="demo-field">
+            <Dropdown label="Please select Campaign" value={f.campaignName} options={campaigns} onChange={set('campaignName')} placeholder="-- All Campaigns --" loading={loading} />
           </div>
           <div className="demo-field demo-field-actions">
             <label className="demo-label">&nbsp;</label>
             <div className="demo-action-row">
-              <button type="submit" className="demo-btn demo-btn-primary" disabled={submitting}>
+              <button type="submit" className="demo-btn demo-btn-primary" disabled={submitting || loading}>
                 {submitting ? 'Loading…' : 'Submit'}
               </button>
-              <button type="button" className="demo-btn demo-btn-secondary" onClick={handleReset}>Reset</button>
+              <button type="button" className="demo-btn demo-btn-secondary" onClick={handleReset} disabled={loading}>Reset</button>
             </div>
           </div>
           {onExport && (
             <div className="demo-field demo-field-actions">
               <label className="demo-label">&nbsp;</label>
-              <button type="button" className="demo-btn demo-btn-primary" onClick={onExport} disabled={exportDisabled}>
+              <button type="button" className="demo-btn demo-btn-primary" onClick={onExport} disabled={exportDisabled || loading}>
                 Csv Download
               </button>
             </div>
