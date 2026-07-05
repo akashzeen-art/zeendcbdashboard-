@@ -1,11 +1,19 @@
 import { useState, useEffect } from 'react';
 import { eachDayOfInterval, format, parseISO } from 'date-fns';
-import { fetchSummary } from './api';
+import { fetchSummary, fetchAllSummaryDetails } from './api';
 import { SummaryFilterBar, DEFAULT_SUMMARY_FILTERS } from './FilterPanel';
 import Pagination from './Pagination';
 import SkeletonRows from './SkeletonRows';
 import NullCell from './NullCell';
-import { parseOperatorFields, localToUsd, excelNum, downloadCsv } from './utils';
+import {
+  parseOperatorFields,
+  localToUsd,
+  excelNum,
+  downloadCsv,
+  billingGroupKey,
+  groupParkingFromDetails,
+  groupChurnFromDetails,
+} from './utils';
 
 const ROWS_PER_PAGE = 50;
 
@@ -85,12 +93,59 @@ function mapSummaryRow(r, dateLabel) {
     campCR: !isParkingBucket && act > 0 && lifecycleTotal > 0
       ? ((act / lifecycleTotal) * 100).toFixed(2)
       : null,
+    _isParkingBucket: isParkingBucket,
     _rowKey: `${dateLabel}-${r.billerName}-${r.operatorId}-${r.serviceName}-${r.pricePoint}`,
   };
 }
 
-function buildDayRows(day, apiRows) {
-  return (apiRows || []).map(r => mapSummaryRow(r, day));
+function buildDayRows(day, apiRows, detailRows) {
+  const rows = (apiRows || []).map(r => mapSummaryRow(r, day));
+  const parkingMap = groupParkingFromDetails(detailRows);
+  const churnMap = groupChurnFromDetails(detailRows);
+
+  const groupMeta = new Map();
+  (apiRows || []).forEach(r => {
+    groupMeta.set(billingGroupKey(r.billerName, r.operatorId, r.serviceName), r);
+  });
+
+  const summaryParkByGroup = new Map();
+  rows.forEach(row => {
+    const key = billingGroupKey(row.billerName, row.operatorId, row.serviceName);
+    summaryParkByGroup.set(key, (summaryParkByGroup.get(key) || 0) + (row.activationPending ?? 0));
+  });
+
+  parkingMap.forEach((detailPark, key) => {
+    if (!detailPark) return;
+    const summaryPark = summaryParkByGroup.get(key) || 0;
+    const bucketRow = rows.find(r =>
+      r._isParkingBucket && billingGroupKey(r.billerName, r.operatorId, r.serviceName) === key
+    );
+
+    if (bucketRow) {
+      if (summaryPark === 0) bucketRow.activationPending = detailPark;
+      if (!bucketRow.churn && churnMap.get(key)) bucketRow.churn = churnMap.get(key);
+      return;
+    }
+
+    if (summaryPark > 0) return;
+
+    const sample = groupMeta.get(key);
+    if (!sample) return;
+
+    rows.push(mapSummaryRow({
+      serviceName: sample.serviceName,
+      billerName: sample.billerName,
+      operatorName: sample.operatorName,
+      operatorId: sample.operatorId,
+      activation: 0,
+      renewal: 0,
+      churn: churnMap.get(key) || 0,
+      activationPending: detailPark,
+      pricePoint: 0,
+    }, day));
+  });
+
+  return rows;
 }
 
 function getDaysInRange(startDate, endDate) {
@@ -169,22 +224,22 @@ function Cell({ col, row }) {
 }
 
 async function fetchSummaryForRange(startDate, endDate) {
-  if (startDate === endDate) {
-    const res = await fetchSummary({ startDate, endDate, page: 1, size: 500 });
-    return buildDayRows(startDate, res.data || []);
+  async function loadDay(day) {
+    try {
+      const [summaryRes, details] = await Promise.all([
+        fetchSummary({ startDate: day, endDate: day, page: 1, size: 500 }),
+        fetchAllSummaryDetails(day, day).catch(() => []),
+      ]);
+      return buildDayRows(day, summaryRes.data || [], details);
+    } catch {
+      return [];
+    }
   }
 
+  if (startDate === endDate) return loadDay(startDate);
+
   const days = getDaysInRange(startDate, endDate);
-  const chunks = await Promise.all(
-    days.map(async day => {
-      try {
-        const res = await fetchSummary({ startDate: day, endDate: day, page: 1, size: 500 });
-        return buildDayRows(day, res.data || []);
-      } catch {
-        return [];
-      }
-    })
-  );
+  const chunks = await Promise.all(days.map(loadDay));
   return chunks.flat();
 }
 

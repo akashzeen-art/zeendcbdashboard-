@@ -199,6 +199,54 @@ export function passesBillingFilters(r, filters) {
   return true;
 }
 
+/** Parking actions in summary-details (NG uses GRACE; SD uses ACTP/PARKING). */
+export const PARKING_DETAIL_ACTIONS = new Set(['GRACE', 'ACTP', 'PARKING']);
+export const CHURN_DETAIL_ACTIONS = new Set(['DCT']);
+
+export function billingGroupKey(billerName, operatorId, serviceName) {
+  return `${billerName || ''}__${operatorId ?? ''}__${serviceName || ''}`;
+}
+
+function matchesBillingGroup(row, { billerName, operatorId, serviceName }) {
+  if (billerName && row.billerName !== billerName) return false;
+  if (operatorId != null && String(row.operatorId) !== String(operatorId)) return false;
+  if (serviceName && row.serviceName !== serviceName) return false;
+  return true;
+}
+
+export function countParkingFromDetails(detailsRows, group) {
+  return (detailsRows || []).filter(r =>
+    matchesBillingGroup(r, group) && PARKING_DETAIL_ACTIONS.has(r.action)
+  ).length;
+}
+
+export function countChurnFromDetails(detailsRows, group) {
+  return (detailsRows || []).filter(r =>
+    matchesBillingGroup(r, group) && CHURN_DETAIL_ACTIONS.has(r.action)
+  ).length;
+}
+
+/** Parking counts keyed by biller + operator + service. */
+export function groupParkingFromDetails(detailsRows) {
+  const map = new Map();
+  (detailsRows || []).forEach(r => {
+    if (!PARKING_DETAIL_ACTIONS.has(r.action)) return;
+    const key = billingGroupKey(r.billerName, r.operatorId, r.serviceName);
+    map.set(key, (map.get(key) || 0) + 1);
+  });
+  return map;
+}
+
+export function groupChurnFromDetails(detailsRows) {
+  const map = new Map();
+  (detailsRows || []).forEach(r => {
+    if (!CHURN_DETAIL_ACTIONS.has(r.action)) return;
+    const key = billingGroupKey(r.billerName, r.operatorId, r.serviceName);
+    map.set(key, (map.get(key) || 0) + 1);
+  });
+  return map;
+}
+
 export async function updateCutValue(campaignId, links, cutValue) {
   const cut = parseInt(cutValue, 10);
   if (!VALID_CUT_VALUES.has(cut)) {

@@ -41,6 +41,25 @@ export async function fetchSummaryDetails(filters) {
   return res.json();
 }
 
+/** Fetch all summary-details rows for a date range (paginated). */
+export async function fetchAllSummaryDetails(startDate, endDate) {
+  const pageSize = 500;
+  let page = 1;
+  let all = [];
+  let total = Infinity;
+
+  while (all.length < total) {
+    const res = await fetchSummaryDetails({ startDate, endDate, page, size: pageSize });
+    const batch = res.data || [];
+    all = all.concat(batch);
+    total = res.total ?? all.length;
+    if (!batch.length) break;
+    page += 1;
+  }
+
+  return all;
+}
+
 export async function fetchFilterOptions() {
   const end   = new Date().toISOString().split('T')[0];
   const start = new Date(Date.now() - 180 * 86400000).toISOString().split('T')[0];
