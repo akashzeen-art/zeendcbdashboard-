@@ -3,7 +3,6 @@ import Login from './Login';
 import SummaryReports from './SummaryReports';
 import HourlyReport from './HourlyReport';
 import PricePointReport from './PricePointReport';
-import PublisherReport from './PublisherReport';
 import './App.css';
 import './Login.css';
 
@@ -15,7 +14,6 @@ const TABS = [
   { id: 'summary',   label: 'Summary & Reports',      icon: '📋' },
   { id: 'hourly',    label: 'Reports Hourly',          icon: '⏱️' },
   { id: 'pricepoint',label: 'Pricepoint/Biller Report',icon: '💰' },
-  { id: 'publisher', label: 'Publisher Report',        icon: '📢' },
 ];
 
 export default function App() {
@@ -86,7 +84,6 @@ export default function App() {
           {activeTab === 'summary'    && <SummaryReports />}
           {activeTab === 'hourly'     && <HourlyReport />}
           {activeTab === 'pricepoint' && <PricePointReport />}
-          {activeTab === 'publisher'  && <PublisherReport />}
         </main>
       </div>
     </div>
