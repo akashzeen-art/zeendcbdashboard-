@@ -147,50 +147,50 @@ function HourlyDetailTable({ hourlyData }) {
     <table className="demo-table demo-table-hourly">
       <thead>
         <tr className="demo-thead-row">
-          <th>Metric</th>
+          <th className="demo-hourly-th-metric">Metric</th>
+          <th className="demo-hourly-th-total">Total</th>
           {HOUR_SLOTS.map(h => <th key={h.slot}>{h.slot}</th>)}
-          <th>Total</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td className="demo-metric-label">Clicks</td>
+          <td className="demo-hourly-td-metric demo-metric-label">Clicks</td>
+          <td className="demo-hourly-td-total"><strong>{totals.clicks.toLocaleString()}</strong></td>
           {HOUR_SLOTS.map(h => (
             <td key={h.slot}>{parsed.clicks[h.index].toLocaleString()}</td>
           ))}
-          <td><strong>{totals.clicks.toLocaleString()}</strong></td>
         </tr>
         <tr>
-          <td className="demo-metric-label">Conversions</td>
+          <td className="demo-hourly-td-metric demo-metric-label">Conversions</td>
+          <td className="demo-hourly-td-total"><strong>{totals.conversions.toLocaleString()}</strong></td>
           {HOUR_SLOTS.map(h => (
             <td key={h.slot}>{parsed.conversions[h.index].toLocaleString()}</td>
           ))}
-          <td><strong>{totals.conversions.toLocaleString()}</strong></td>
         </tr>
         <tr>
-          <td className="demo-metric-label">Sent To Pub</td>
+          <td className="demo-hourly-td-metric demo-metric-label">Sent To Pub</td>
+          <td className="demo-hourly-td-total"><strong className="stp-badge">{totals.stp.toLocaleString()}</strong></td>
           {HOUR_SLOTS.map(h => (
             <td key={h.slot}>{parsed.stp[h.index].toLocaleString()}</td>
           ))}
-          <td><strong className="stp-badge">{totals.stp.toLocaleString()}</strong></td>
         </tr>
         <tr>
-          <td className="demo-metric-label">CR %</td>
+          <td className="demo-hourly-td-metric demo-metric-label">CR %</td>
+          <td className="demo-hourly-td-total"><CRBadge value={totalCR} /></td>
           {HOUR_SLOTS.map(h => (
             <td key={h.slot}>
               <CRBadge value={calcCR(parsed.conversions[h.index], parsed.clicks[h.index])} />
             </td>
           ))}
-          <td><CRBadge value={totalCR} /></td>
         </tr>
         <tr>
-          <td className="demo-metric-label">STP CR %</td>
+          <td className="demo-hourly-td-metric demo-metric-label">STP CR %</td>
+          <td className="demo-hourly-td-total"><CRBadge value={totalStpCR} /></td>
           {HOUR_SLOTS.map(h => (
             <td key={h.slot}>
               <CRBadge value={calcStpCR(parsed.stp[h.index], parsed.clicks[h.index])} />
             </td>
           ))}
-          <td><CRBadge value={totalStpCR} /></td>
         </tr>
       </tbody>
     </table>
@@ -293,13 +293,13 @@ export default function HourlyReport({ filters: externalFilters, onCountChange }
     summaryRows.forEach((r, i) => {
       const parsed = parseHourlyData(r._hourlyData);
       const tot = totalsFromHourlyData(r._hourlyData);
-      const header = ['Metric', ...HOUR_SLOTS.map(h => h.slot), 'Total'];
+      const header = ['Metric', 'Total', ...HOUR_SLOTS.map(h => h.slot)];
       const rows = [
-        ['Clicks', ...HOUR_SLOTS.map(h => parsed.clicks[h.index]), tot.clicks],
-        ['Conversions', ...HOUR_SLOTS.map(h => parsed.conversions[h.index]), tot.conversions],
-        ['Sent To Pub', ...HOUR_SLOTS.map(h => parsed.stp[h.index]), tot.stp],
-        ['CR %', ...HOUR_SLOTS.map(h => calcCR(parsed.conversions[h.index], parsed.clicks[h.index])), calcCR(tot.conversions, tot.clicks)],
-        ['STP CR %', ...HOUR_SLOTS.map(h => calcStpCR(parsed.stp[h.index], parsed.clicks[h.index])), calcStpCR(tot.stp, tot.clicks)],
+        ['Clicks', tot.clicks, ...HOUR_SLOTS.map(h => parsed.clicks[h.index])],
+        ['Conversions', tot.conversions, ...HOUR_SLOTS.map(h => parsed.conversions[h.index])],
+        ['Sent To Pub', tot.stp, ...HOUR_SLOTS.map(h => parsed.stp[h.index])],
+        ['CR %', calcCR(tot.conversions, tot.clicks), ...HOUR_SLOTS.map(h => calcCR(parsed.conversions[h.index], parsed.clicks[h.index]))],
+        ['STP CR %', calcStpCR(tot.stp, tot.clicks), ...HOUR_SLOTS.map(h => calcStpCR(parsed.stp[h.index], parsed.clicks[h.index]))],
       ];
       const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
       const sheetName = `C${r.campaignId}_${r.date}`.slice(0, 31);

@@ -2215,6 +2215,62 @@ tbody tr:hover .ct-td-dummy { background: #f1f5f9 !important; }
   padding: 3px 6px;
 }
 
+/* Sticky Metric + Total while scrolling hourly columns */
+.demo-table-hourly {
+  min-width: max-content;
+}
+
+.demo-table-hourly .demo-hourly-th-metric,
+.demo-table-hourly .demo-hourly-td-metric {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  min-width: 118px;
+  max-width: 118px;
+  background: #fafafa;
+  border-right: 2px solid #bbb !important;
+  text-align: left !important;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.08);
+}
+
+.demo-table-hourly .demo-hourly-th-total,
+.demo-table-hourly .demo-hourly-td-total {
+  position: sticky;
+  left: 118px;
+  z-index: 3;
+  min-width: 72px;
+  background: #fffef5;
+  border-right: 2px solid #bbb !important;
+  text-align: center !important;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.08);
+}
+
+.demo-table-hourly .demo-hourly-th-metric {
+  z-index: 13;
+  top: 0;
+  background: #f2dede;
+}
+
+.demo-table-hourly .demo-hourly-th-total {
+  z-index: 12;
+  top: 0;
+  background: #f2dede;
+  font-weight: 800;
+}
+
+.demo-table-hourly tbody tr:nth-child(even) .demo-hourly-td-metric {
+  background: #f3f3f3;
+}
+
+.demo-table-hourly tbody tr:nth-child(even) .demo-hourly-td-total {
+  background: #fef9e7;
+}
+
+.demo-table-hourly tbody tr:hover .demo-hourly-td-metric,
+.demo-table-hourly tbody tr:hover .demo-hourly-td-total {
+  background: #f0f4ff !important;
+}
+
 .demo-metric-label {
   text-align: left !important;
   font-weight: 700;

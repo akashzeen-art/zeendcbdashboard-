@@ -7,15 +7,11 @@ import DateRangePicker from './DateRangePicker';
 const today = new Date().toISOString().split('T')[0];
 const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
 const todayRange = { s: startOfDay(new Date()), e: endOfDay(new Date()) };
-const summaryDateRange = { s: startOfDay(new Date(monthAgo)), e: endOfDay(new Date()) };
+const summaryDateRange = todayRange;
 
 export const DEFAULT_SUMMARY_FILTERS = {
-  startDate: monthAgo,
+  startDate: today,
   endDate: today,
-  operatorId: '',
-  serviceName: '',
-  dspNetwork: '',
-  billerName: '',
 };
 
 export const DEFAULT_HOURLY_FILTERS = {
@@ -207,33 +203,13 @@ export function SummaryFilterBar({ onApply, onExport, exportDisabled = true }) {
   const [dateRange, setDateRange] = useState(summaryDateRange);
   const [f, setF] = useState(DEFAULT_SUMMARY_FILTERS);
   const [submitting, setSubmitting] = useState(false);
-  const { operators, products, networks, aggregators, loading, cascade } =
-    useReportFilterOptions(f.startDate, f.endDate);
-
-  const set = (k) => (v) => {
-    setF(prev => {
-      const next = { ...prev, [k]: v };
-      if (k === 'billerName') {
-        next.operatorId = '';
-        next.serviceName = '';
-        next.dspNetwork = '';
-      }
-      if (k === 'operatorId') next.serviceName = '';
-      if (k === 'dspNetwork' || k === 'serviceName') { /* keep selections */ }
-      cascade(next);
-      return next;
-    });
-  };
 
   const handleDate = (r) => {
     setDateRange(r);
-    const next = {
-      ...DEFAULT_SUMMARY_FILTERS,
+    setF({
       startDate: format(r.s, 'yyyy-MM-dd'),
       endDate: format(r.e, 'yyyy-MM-dd'),
-    };
-    setF(next);
-    cascade(next);
+    });
   };
 
   const handleSubmit = (e) => {
@@ -246,7 +222,6 @@ export function SummaryFilterBar({ onApply, onExport, exportDisabled = true }) {
   const handleReset = () => {
     setDateRange(summaryDateRange);
     setF(DEFAULT_SUMMARY_FILTERS);
-    cascade(DEFAULT_SUMMARY_FILTERS);
     onApply(DEFAULT_SUMMARY_FILTERS);
   };
 
@@ -257,18 +232,6 @@ export function SummaryFilterBar({ onApply, onExport, exportDisabled = true }) {
           <div className="demo-field">
             <label className="demo-label">Select Dates <span className="req">*</span></label>
             <DateRangePicker value={dateRange} onChange={handleDate} />
-          </div>
-          <div className="demo-field">
-            <Dropdown label="Please select Operator" value={f.operatorId} options={operators} onChange={set('operatorId')} placeholder="-- Select Operator --" loading={loading} />
-          </div>
-          <div className="demo-field">
-            <Dropdown label="Please select product" value={f.serviceName} options={products} onChange={set('serviceName')} placeholder="-- All Products --" loading={loading} />
-          </div>
-          <div className="demo-field">
-            <Dropdown label="Please select Network" value={f.dspNetwork} options={networks} onChange={set('dspNetwork')} placeholder="-- All Networks --" loading={loading} />
-          </div>
-          <div className="demo-field">
-            <Dropdown label="Please Select Aggregator" value={f.billerName} options={aggregators} onChange={set('billerName')} placeholder="-- All Aggregators --" loading={loading} />
           </div>
           <div className="demo-field demo-field-actions">
             <label className="demo-label">&nbsp;</label>
@@ -516,38 +479,62 @@ export function useFilterOptions() {
 }
 export function PublisherFilterBar({ onApply }) {
   const [panelOpen, setPanelOpen] = useState(true);
-  const { operators, products, loading } = useReportFilterOptions(today, today);
   const [dateRange, setDateRange] = useState(todayRange);
   const [f, setF] = useState({ startDate: today, endDate: today, operatorId: '', serviceName: '' });
+  const { operators, products, loading, cascade } = useReportFilterOptions(f.startDate, f.endDate);
 
-  const set = (k) => (v) => setF(p => ({ ...p, [k]: v }));
+  const set = (k) => (v) => {
+    setF(prev => {
+      const next = { ...prev, [k]: v };
+      if (k === 'operatorId') next.serviceName = '';
+      cascade(next);
+      return next;
+    });
+  };
+
   const handleDate = (r) => {
     setDateRange(r);
-    setF(p => ({ ...p, startDate: format(r.s,'yyyy-MM-dd'), endDate: format(r.e,'yyyy-MM-dd') }));
+    const next = {
+      startDate: format(r.s, 'yyyy-MM-dd'),
+      endDate: format(r.e, 'yyyy-MM-dd'),
+      operatorId: '',
+      serviceName: '',
+    };
+    setF(next);
+    cascade(next);
+  };
+
+  const handleReset = () => {
+    const next = { startDate: today, endDate: today, operatorId: '', serviceName: '' };
+    setDateRange(todayRange);
+    setF(next);
+    cascade(next);
+    onApply(next);
   };
 
   return (
-    <div className="filter-panel">
-      <div className="filter-panel-header" onClick={() => setPanelOpen(o => !o)}>
-        <div className="filter-panel-header-left"><div className="filter-icon">🔍</div>Filters</div>
-        <span className={`filter-toggle-icon ${panelOpen ? 'open' : ''}`}>▼</span>
-      </div>
-      {panelOpen && (
-        <form onSubmit={(e) => { e.preventDefault(); onApply(f); }}>
-          <div className="filter-body">
-            <div className="filter-group fb-date-span">
-              <label className="fb-label">Date Range <span className="req">*</span></label>
-              <DateRangePicker value={dateRange} onChange={handleDate} />
-            </div>
-            <Dropdown label="Geo / Operator" value={f.operatorId} options={operators} onChange={set('operatorId')} placeholder="All Operators" loading={loading} />
-            <Dropdown label="Service / Product" value={f.serviceName} options={products} onChange={set('serviceName')} placeholder="All Services" loading={loading} />
-            <div className="filter-actions">
-              <button type="submit" className="btn-apply">🔍 Apply</button>
-              <button type="button" className="btn-reset" onClick={() => { const r = { startDate: today, endDate: today, operatorId: '', serviceName: '' }; setF(r); onApply(r); }}>↺ Reset</button>
+    <div className="demo-filter-panel">
+      <form onSubmit={(e) => { e.preventDefault(); onApply(f); }}>
+        <div className="demo-filter-grid">
+          <div className="demo-field">
+            <label className="demo-label">Select Dates <span className="req">*</span></label>
+            <DateRangePicker value={dateRange} onChange={handleDate} />
+          </div>
+          <div className="demo-field">
+            <Dropdown label="Please select Operator" value={f.operatorId} options={operators} onChange={set('operatorId')} placeholder="-- All Operators --" loading={loading} />
+          </div>
+          <div className="demo-field">
+            <Dropdown label="Please select product" value={f.serviceName} options={products} onChange={set('serviceName')} placeholder="-- All Products --" loading={loading} />
+          </div>
+          <div className="demo-field demo-field-actions">
+            <label className="demo-label">&nbsp;</label>
+            <div className="demo-action-row">
+              <button type="submit" className="demo-btn demo-btn-primary">Submit</button>
+              <button type="button" className="demo-btn demo-btn-secondary" onClick={handleReset}>Reset</button>
             </div>
           </div>
-        </form>
-      )}
+        </div>
+      </form>
     </div>
   );
 }

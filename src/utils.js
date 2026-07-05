@@ -192,7 +192,6 @@ export function passesTrafficFilters(c, filters) {
 }
 
 export function passesBillingFilters(r, filters) {
-  if (filters.dspNetwork) return false;
   if (filters.campaignName) return false;
   if (filters.billerName && r.billerName !== filters.billerName) return false;
   if (filters.operatorId && String(r.operatorId) !== String(filters.operatorId)) return false;
@@ -234,12 +233,39 @@ export async function updateCutValue(campaignId, links, cutValue) {
   return { success: true, message: trimmed || 'CUT updated successfully' };
 }
 
-/** Coerce a table value to a number for Excel export (SUM-friendly). */
+/** Coerce a table value to a number for Excel/CSV export (SUM-friendly). */
 export function excelNum(val) {
   if (val == null || val === '') return '';
   if (typeof val === 'number' && Number.isFinite(val)) return val;
   const n = parseFloat(String(val).replace(/,/g, ''));
   return Number.isFinite(n) ? n : '';
+}
+
+/** Escape a cell for CSV (RFC 4180). */
+export function escapeCsvValue(val) {
+  if (val == null || val === '') return '';
+  const s = String(val);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+/** Trigger a CSV file download (UTF-8 BOM for Excel). */
+export function downloadCsv(filename, headers, rows) {
+  const headerLine = headers.map(escapeCsvValue).join(',');
+  const bodyLines = (rows || []).map(row =>
+    row.map(cell => escapeCsvValue(cell)).join(',')
+  );
+  const csv = `\ufeff${[headerLine, ...bodyLines].join('\r\n')}`;
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename.endsWith('.csv') ? filename : `${filename}.csv`;
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 /** Apply Excel number format to columns matched by header label. */
