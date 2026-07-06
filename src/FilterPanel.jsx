@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, startOfDay, endOfDay } from 'date-fns';
-import { fetchHourlyReport, fetchSummary, fetchAllSummaryDetails } from './api';
+import { fetchHourlyReport, fetchAllSummary, fetchAllSummaryDetails } from './api';
 import { billerFromHourly, parseOperatorFields } from './utils';
 import DateRangePicker from './DateRangePicker';
 
@@ -204,12 +204,10 @@ export function useSummaryFilterOptions(startDate, endDate) {
     if (!start || !end) return;
     setLoading(true);
     try {
-      const [summaryRes, details] = await Promise.all([
-        fetchSummary({ startDate: start, endDate: end, page: 1, size: 500 }).catch(() => ({ data: [] })),
-        fetchAllSummaryDetails(start, end).catch(() => []),
-      ]);
+      const { data: summaryRows, meta } = await fetchAllSummary({ startDate: start, endDate: end }).catch(() => ({ data: [], meta: {} }));
+      const details = await fetchAllSummaryDetails(start, end).catch(() => []);
       dataRef.current = {
-        billing: summaryRes.data || [],
+        billing: summaryRows || [],
         details: details || [],
       };
       setOptions(deriveSummaryOptions(dataRef.current.billing, dataRef.current.details));

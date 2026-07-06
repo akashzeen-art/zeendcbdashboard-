@@ -1,18 +1,14 @@
 import { useState, useEffect } from 'react';
 import { eachDayOfInterval, format, parseISO } from 'date-fns';
-import { fetchSummary, fetchAllSummaryDetails } from './api';
+import { fetchAllSummary, fetchAllSummaryDetails } from './api';
 import { SummaryFilterBar, DEFAULT_SUMMARY_FILTERS } from './FilterPanel';
 import Pagination from './Pagination';
 import SkeletonRows from './SkeletonRows';
 import NullCell from './NullCell';
 import {
-  parseOperatorFields,
   localToUsd,
   excelNum,
   downloadCsv,
-  billingGroupKey,
-  groupParkingFromDetails,
-  groupChurnFromDetails,
   passesSummaryFilters,
   billingGroupsForCampaign,
 } from './utils';
@@ -20,7 +16,7 @@ import {
 const ROWS_PER_PAGE = 50;
 
 const COUNT_KEYS = new Set([
-  'activation', 'activationPending', 'churn', 'renewal',
+  'activation', 'churn', 'renewal',
 ]);
 
 const EXPORT_NUM_KEYS = new Set([
@@ -28,7 +24,7 @@ const EXPORT_NUM_KEYS = new Set([
   'actRev', 'renewRev', 'totalRev', 'totalRevUsd',
 ]);
 
-/** Raw API fields + revenue derived from activation/renewal × pricePoint. */
+/** Columns aligned with GET /dashboard/summary API fields. */
 const COLS = [
   { key: 'date',              label: 'Date' },
   { key: 'serviceName',       label: 'Service' },
@@ -38,7 +34,6 @@ const COLS = [
   { key: 'pricePoint',        label: 'Price Point' },
   { key: 'activation',        label: 'ACT' },
   { key: 'activationPending', label: 'PARK' },
-  // { key: 'parkToAct',         label: 'P2A (Parking→Act )' },
   { key: 'churn',             label: 'Dct' },
   { key: 'renewal',           label: 'RENEW' },
   { key: 'actRev',            label: 'Act Rev' },
@@ -63,95 +58,39 @@ function fmtUsdRev(localTotal, operatorName) {
   return usd != null && usd > 0 ? usd.toFixed(2) : null;
 }
 
-function mapSummaryRow(r, dateLabel) {
+/** Map one API record — no derived parking or adjusted counts. */
+function mapSummaryRow(r, day) {
+  const price = apiNum(r.pricePoint) ?? 0;
   const act = apiNum(r.activation) ?? 0;
   const ren = apiNum(r.renewal) ?? 0;
-  const park = apiNum(r.activationPending) ?? 0;
-  const churn = apiNum(r.churn) ?? 0;
-  const price = apiNum(r.pricePoint) ?? 0;
   const actRev = act * price;
   const renewRev = ren * price;
   const totalRev = actRev + renewRev;
-  const isParkingBucket = price <= 0;
 
   return {
-    date: dateLabel,
+    date: day,
     serviceName: r.serviceName ?? null,
     billerName: r.billerName ?? null,
     operatorName: r.operatorName ?? null,
     operatorId: apiNum(r.operatorId),
-    pricePoint: isParkingBucket ? null : price,
+    pricePoint: apiNum(r.pricePoint),
     activation: apiNum(r.activation),
     activationPending: apiNum(r.activationPending),
     churn: apiNum(r.churn),
     renewal: apiNum(r.renewal),
-    parkToAct: park > 0 && act > 0 ? ((act / park) * 100).toFixed(2) : null, // ACT ÷ PARK × 100
     actRev: fmtLocalRev(actRev),
     renewRev: fmtLocalRev(renewRev),
     totalRev: fmtLocalRev(totalRev),
     totalRevUsd: fmtUsdRev(totalRev, r.operatorName),
-    _isParkingBucket: isParkingBucket,
-    _rowKey: `${dateLabel}-${r.billerName}-${r.operatorId}-${r.serviceName}-${r.pricePoint}`,
+    _rowKey: `${day}-${r.billerName}-${r.operatorId}-${r.serviceName}-${r.pricePoint}`,
   };
-}
-
-function buildDayRows(day, apiRows, detailRows) {
-  const rows = (apiRows || []).map(r => mapSummaryRow(r, day));
-  const parkingMap = groupParkingFromDetails(detailRows);
-  const churnMap = groupChurnFromDetails(detailRows);
-
-  const groupMeta = new Map();
-  (apiRows || []).forEach(r => {
-    groupMeta.set(billingGroupKey(r.billerName, r.operatorId, r.serviceName), r);
-  });
-
-  const summaryParkByGroup = new Map();
-  rows.forEach(row => {
-    const key = billingGroupKey(row.billerName, row.operatorId, row.serviceName);
-    summaryParkByGroup.set(key, (summaryParkByGroup.get(key) || 0) + (row.activationPending ?? 0));
-  });
-
-  parkingMap.forEach((detailPark, key) => {
-    if (!detailPark) return;
-    const summaryPark = summaryParkByGroup.get(key) || 0;
-    const bucketRow = rows.find(r =>
-      r._isParkingBucket && billingGroupKey(r.billerName, r.operatorId, r.serviceName) === key
-    );
-
-    if (bucketRow) {
-      if (summaryPark === 0) bucketRow.activationPending = detailPark;
-      if (!bucketRow.churn && churnMap.get(key)) bucketRow.churn = churnMap.get(key);
-      return;
-    }
-
-    if (summaryPark > 0) return;
-
-    const sample = groupMeta.get(key);
-    if (!sample) return;
-
-    rows.push(mapSummaryRow({
-      serviceName: sample.serviceName,
-      billerName: sample.billerName,
-      operatorName: sample.operatorName,
-      operatorId: sample.operatorId,
-      activation: 0,
-      renewal: 0,
-      churn: churnMap.get(key) || 0,
-      activationPending: detailPark,
-      pricePoint: 0,
-    }, day));
-  });
-
-  return rows;
 }
 
 function getDaysInRange(startDate, endDate) {
   return eachDayOfInterval({
     start: parseISO(startDate),
     end: parseISO(endDate),
-  })
-    .map(d => format(d, 'yyyy-MM-dd'))
-    .reverse();
+  }).map(d => format(d, 'yyyy-MM-dd'));
 }
 
 function formatTableDate(isoDate) {
@@ -174,12 +113,6 @@ function aggregatorLabel(billerName) {
   return name || '—';
 }
 
-function operatorExportLabel(operatorName, operatorId) {
-  const { geo, operator } = parseOperatorFields(operatorName, operatorId);
-  if (geo && operator) return `${geo} · ${operator}`;
-  return operatorName || operator || '';
-}
-
 function sortRows(rows) {
   return [...rows].sort((a, b) => {
     const dateCmp = b.date.localeCompare(a.date);
@@ -188,6 +121,8 @@ function sortRows(rows) {
     if (svcCmp !== 0) return svcCmp;
     const aggCmp = String(a.billerName || '').localeCompare(String(b.billerName || ''));
     if (aggCmp !== 0) return aggCmp;
+    const opCmp = String(a.operatorId ?? '').localeCompare(String(b.operatorId ?? ''));
+    if (opCmp !== 0) return opCmp;
     const aPrice = a.pricePoint ?? -1;
     const bPrice = b.pricePoint ?? -1;
     return bPrice - aPrice;
@@ -196,15 +131,17 @@ function sortRows(rows) {
 
 function Cell({ col, row }) {
   const v = row[col.key];
+
+  if (col.key === 'activationPending') {
+    if (v == null || v === 0) return <NullCell />;
+    return Number(v).toLocaleString();
+  }
+
   if (v == null) return <NullCell />;
   if (col.key === 'date') return <span className="ct-date">{formatTableDate(v)}</span>;
   if (col.key === 'serviceName') return <span className="td-primary">{v}</span>;
   if (col.key === 'billerName') return <span className="td-primary">{aggregatorLabel(v)}</span>;
-  if (col.key === 'operatorName') {
-    const { geo, operator } = parseOperatorFields(v, row.operatorId);
-    const label = geo && operator ? `${geo} · ${operator}` : (v || operator);
-    return label ? <span className="ct-network">{label}</span> : <NullCell />;
-  }
+  if (col.key === 'operatorName') return <span className="ct-network">{v}</span>;
   if (col.key === 'operatorId') return <span className="td-mono">{v}</span>;
   if (col.key === 'pricePoint') return <span className="td-amount">{Number(v).toLocaleString()}</span>;
   if (COUNT_KEYS.has(col.key)) return Number(v).toLocaleString();
@@ -217,8 +154,16 @@ function summaryApiParams(filters, day) {
   return {
     startDate: day,
     endDate: day,
-    page: 1,
-    size: 500,
+    ...(filters.billerName && { billerName: filters.billerName }),
+    ...(filters.operatorId && { operatorId: filters.operatorId }),
+    ...(filters.serviceName && { serviceName: filters.serviceName }),
+  };
+}
+
+function detailsApiParams(filters) {
+  return {
+    startDate: filters.startDate,
+    endDate: filters.endDate,
     ...(filters.billerName && { billerName: filters.billerName }),
     ...(filters.operatorId && { operatorId: filters.operatorId }),
     ...(filters.serviceName && { serviceName: filters.serviceName }),
@@ -227,33 +172,30 @@ function summaryApiParams(filters, day) {
 
 async function fetchSummaryForRange(filters) {
   const { startDate, endDate } = filters;
-
-  async function loadDay(day) {
-    try {
-      const apiParams = summaryApiParams(filters, day);
-      const [summaryRes, details] = await Promise.all([
-        fetchSummary(apiParams),
-        fetchAllSummaryDetails(day, day, {
-          ...(filters.billerName && { billerName: filters.billerName }),
-          ...(filters.operatorId && { operatorId: filters.operatorId }),
-          ...(filters.serviceName && { serviceName: filters.serviceName }),
-        }).catch(() => []),
-      ]);
-      const campaignGroups = filters.campaignName
-        ? billingGroupsForCampaign(details || [], filters.campaignName)
-        : null;
-      const rows = buildDayRows(day, summaryRes.data || [], details || []);
-      return rows.filter(r => passesSummaryFilters(r, filters, campaignGroups));
-    } catch {
-      return [];
-    }
-  }
-
-  if (startDate === endDate) return loadDay(startDate);
-
   const days = getDaysInRange(startDate, endDate);
-  const chunks = await Promise.all(days.map(loadDay));
-  return chunks.flat();
+  const needsDetails = Boolean(filters.campaignName);
+
+  const [dayRows, details] = await Promise.all([
+    Promise.all(days.map(async (day) => {
+      try {
+        const { data } = await fetchAllSummary(summaryApiParams(filters, day));
+        return (data || []).map(r => mapSummaryRow(r, day));
+      } catch {
+        return [];
+      }
+    })),
+    needsDetails
+      ? fetchAllSummaryDetails(startDate, endDate, detailsApiParams(filters)).catch(() => [])
+      : Promise.resolve([]),
+  ]);
+
+  const campaignGroups = filters.campaignName
+    ? billingGroupsForCampaign(details || [], filters.campaignName)
+    : null;
+
+  return dayRows
+    .flat()
+    .filter(r => passesSummaryFilters(r, filters, campaignGroups));
 }
 
 export default function SummaryReports() {
@@ -289,10 +231,7 @@ export default function SummaryReports() {
       let val = r[c.key];
       if (c.key === 'date' && val) val = formatTableDate(val);
       else if (c.key === 'billerName') val = aggregatorLabel(val);
-      else if (c.key === 'operatorName') val = operatorExportLabel(val, r.operatorId);
-      else if (EXPORT_NUM_KEYS.has(c.key) || c.key === 'parkToAct') {
-        val = excelNum(val);
-      }
+      else if (EXPORT_NUM_KEYS.has(c.key)) val = excelNum(val);
       return val ?? '';
     }));
     downloadCsv(`summary_${filters.startDate}_${filters.endDate}.csv`, headers, dataRows);

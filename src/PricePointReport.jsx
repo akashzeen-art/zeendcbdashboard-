@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { eachDayOfInterval, format, parseISO } from 'date-fns';
-import { fetchSummary, fetchHourlyReport, fetchAllSummaryDetails } from './api';
+import { fetchSummary, fetchHourlyReport } from './api';
 import { PricePointFilterBar, DEFAULT_PRICEPOINT_FILTERS } from './FilterPanel';
-import { totalsFromHourlyData, billerFromHourly, applySheetNumberFormats, countParkingFromDetails, countChurnFromDetails } from './utils';
+import { totalsFromHourlyData, billerFromHourly, applySheetNumberFormats } from './utils';
 import * as XLSX from 'xlsx';
 
 // Local currency → USD divisor. Adjust the rates if the FX changes.
@@ -29,7 +29,7 @@ function matchesFilters(r, f) {
 }
 
 /** One day → one row per (operator + service). Pure backend billing data. */
-function buildDayGroups(day, apiRows, hourlyForDay, detailRows, filters) {
+function buildDayGroups(day, apiRows, hourlyForDay, filters) {
   const rows = (apiRows || []).filter(r => matchesFilters(r, filters));
   const ppFilter = filters.pricePoint ? Number(filters.pricePoint) : null;
 
@@ -58,11 +58,12 @@ function buildDayGroups(day, apiRows, hourlyForDay, detailRows, filters) {
       const act = r.activation || 0;
       const ren = r.renewal    || 0;
 
-      // Parking / churn live on the 0-price bucket — always counted.
       parking += r.activationPending || 0;
-      churn   += r.churn || 0;
 
-      if (pp <= 0) return;
+      if (pp <= 0) {
+        churn += r.churn || 0;
+        return;
+      }
       if (ppFilter && pp !== ppFilter) return;
 
       gaByPp[pp]  = (gaByPp[pp]  || 0) + act;
@@ -72,23 +73,6 @@ function buildDayGroups(day, apiRows, hourlyForDay, detailRows, filters) {
       gaRev  += act * pp;
       renRev += ren * pp;
     });
-
-    if (parking === 0 && g.list[0]) {
-      const sample = g.list[0];
-      parking = countParkingFromDetails(detailRows, {
-        billerName: sample.billerName,
-        operatorId: g.operatorId,
-        serviceName: g.serviceName,
-      });
-    }
-    if (churn === 0 && g.list[0]) {
-      const sample = g.list[0];
-      churn = countChurnFromDetails(detailRows, {
-        billerName: sample.billerName,
-        operatorId: g.operatorId,
-        serviceName: g.serviceName,
-      });
-    }
 
     let clicks = 0, sendCount = 0;
     (hourlyForDay || []).forEach(c => {
@@ -150,14 +134,9 @@ export default function PricePointReport() {
       .then(hourlyData =>
         Promise.all(days.map(day => {
           const hourlyForDay = (hourlyData || []).filter(c => c.date === day);
-          return Promise.all([
-            fetchSummary({ ...f, startDate: day, endDate: day, page: 1, size: 500 }),
-            fetchAllSummaryDetails(day, day).catch(() => []),
-          ])
-            .then(([summaryRes, details]) =>
-              buildDayGroups(day, summaryRes.data || [], hourlyForDay, details, f)
-            )
-            .catch(() => buildDayGroups(day, [], hourlyForDay, [], f));
+          return fetchSummary({ ...f, startDate: day, endDate: day, page: 1, size: 500 })
+            .then(res => buildDayGroups(day, res.data || [], hourlyForDay, f))
+            .catch(() => buildDayGroups(day, [], hourlyForDay, f));
         }))
       )
       .then(dayRows => {
@@ -298,7 +277,7 @@ export default function PricePointReport() {
                     ))}
                     <td><strong>{fmtIntZero(r.totalGa)}</strong></td>
                     <td className="ct-rev">{fmtMoney(r.gaRev)}</td>
-                    <td>{fmtIntZero(r.parking)}</td>
+                    <td>{fmtInt(r.parking)}</td>
                     <td>{fmtIntZero(r.churn)}</td>
                     {pricePoints.map(pp => (
                       <td key={`ren-${pp}`}>{fmtInt(r.renByPp[pp])}</td>
