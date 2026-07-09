@@ -21,7 +21,7 @@ const COUNT_KEYS = new Set([
 ]);
 
 const EXPORT_NUM_KEYS = new Set([
-  'pricePoint', 'activation', 'parking', 'churn', 'renewal',
+  'pricePoint', 'activation', 'parking', 'activationPending', 'churn', 'renewal',
   'actRev', 'renewRev', 'totalRev', 'totalRevUsd',
 ]);
 
@@ -35,6 +35,7 @@ const COLS = [
   { key: 'pricePoint',        label: 'Price Point' },
   { key: 'activation',        label: 'ACT' },
   { key: 'parking',           label: 'PARK' },
+  { key: 'activationPending', label: 'ACTP' },
   { key: 'churn',             label: 'Dct' },
   { key: 'renewal',           label: 'RENEW' },
   { key: 'actRev',            label: 'Act Rev' },
@@ -77,6 +78,7 @@ function mapSummaryRow(r, day) {
     pricePoint: apiNum(r.pricePoint),
     activation: apiNum(r.activation),
     parking: summaryParking(r),
+    activationPending: apiNum(r.activationPending),
     churn: apiNum(r.churn),
     renewal: apiNum(r.renewal),
     actRev: fmtLocalRev(actRev),
@@ -133,7 +135,7 @@ function sortRows(rows) {
 function Cell({ col, row }) {
   const v = row[col.key];
 
-  if (col.key === 'parking') {
+  if (col.key === 'parking' || col.key === 'activationPending') {
     if (v == null || v === 0) return <NullCell />;
     return Number(v).toLocaleString();
   }
