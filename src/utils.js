@@ -222,6 +222,19 @@ export function billingGroupKey(billerName, operatorId, serviceName) {
   return `${billerName || ''}__${operatorId ?? ''}__${serviceName || ''}`;
 }
 
+/** PARK from summary API — prefers `parking`, falls back to `activationPending`. */
+export function summaryParking(r) {
+  if (r?.parking != null && r.parking !== '') {
+    const n = Number(r.parking);
+    return Number.isFinite(n) ? n : null;
+  }
+  if (r?.activationPending != null && r.activationPending !== '') {
+    const n = Number(r.activationPending);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
 export async function updateCutValue(campaignId, links, cutValue) {
   const cut = parseInt(cutValue, 10);
   if (!VALID_CUT_VALUES.has(cut)) {

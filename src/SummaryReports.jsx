@@ -11,6 +11,7 @@ import {
   downloadCsv,
   passesSummaryFilters,
   billingGroupsForCampaign,
+  summaryParking,
 } from './utils';
 
 const ROWS_PER_PAGE = 50;
@@ -20,7 +21,7 @@ const COUNT_KEYS = new Set([
 ]);
 
 const EXPORT_NUM_KEYS = new Set([
-  'pricePoint', 'activation', 'activationPending', 'churn', 'renewal',
+  'pricePoint', 'activation', 'parking', 'churn', 'renewal',
   'actRev', 'renewRev', 'totalRev', 'totalRevUsd',
 ]);
 
@@ -33,7 +34,7 @@ const COLS = [
   { key: 'operatorId',        label: 'Operator ID' },
   { key: 'pricePoint',        label: 'Price Point' },
   { key: 'activation',        label: 'ACT' },
-  { key: 'activationPending', label: 'PARK' },
+  { key: 'parking',           label: 'PARK' },
   { key: 'churn',             label: 'Dct' },
   { key: 'renewal',           label: 'RENEW' },
   { key: 'actRev',            label: 'Act Rev' },
@@ -75,7 +76,7 @@ function mapSummaryRow(r, day) {
     operatorId: apiNum(r.operatorId),
     pricePoint: apiNum(r.pricePoint),
     activation: apiNum(r.activation),
-    activationPending: apiNum(r.activationPending),
+    parking: summaryParking(r),
     churn: apiNum(r.churn),
     renewal: apiNum(r.renewal),
     actRev: fmtLocalRev(actRev),
@@ -132,7 +133,7 @@ function sortRows(rows) {
 function Cell({ col, row }) {
   const v = row[col.key];
 
-  if (col.key === 'activationPending') {
+  if (col.key === 'parking') {
     if (v == null || v === 0) return <NullCell />;
     return Number(v).toLocaleString();
   }

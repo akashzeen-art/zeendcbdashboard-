@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { eachDayOfInterval, format, parseISO } from 'date-fns';
 import { fetchSummary, fetchHourlyReport } from './api';
 import { PricePointFilterBar, DEFAULT_PRICEPOINT_FILTERS } from './FilterPanel';
-import { totalsFromHourlyData, billerFromHourly, applySheetNumberFormats } from './utils';
+import { totalsFromHourlyData, billerFromHourly, applySheetNumberFormats, summaryParking } from './utils';
 import * as XLSX from 'xlsx';
 
 // Local currency → USD divisor. Adjust the rates if the FX changes.
@@ -58,7 +58,7 @@ function buildDayGroups(day, apiRows, hourlyForDay, filters) {
       const act = r.activation || 0;
       const ren = r.renewal    || 0;
 
-      parking += r.activationPending || 0;
+      parking += summaryParking(r) || 0;
 
       if (pp <= 0) {
         churn += r.churn || 0;
