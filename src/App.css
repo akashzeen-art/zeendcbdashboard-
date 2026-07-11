@@ -2047,6 +2047,32 @@ tbody tr:hover .ct-td-dummy { background: #f1f5f9 !important; }
   overflow: auto;
 }
 
+/* Summary — full table scrolls with page; total row stays at bottom */
+.demo-table-wrap-summary {
+  max-height: none;
+  overflow: visible;
+}
+
+.demo-table-summary tfoot {
+  display: table-footer-group;
+}
+
+.demo-table-total-label {
+  text-align: left !important;
+  font-weight: 700;
+}
+
+.demo-table-total-row td {
+  background: #f0f4ff !important;
+  border-top: 2px solid #a94442;
+  font-weight: 700;
+  padding: .55rem 8px;
+}
+
+.demo-table-total-row:hover td {
+  background: #f0f4ff !important;
+}
+
 .demo-table {
   width: 100%;
   border-collapse: collapse;

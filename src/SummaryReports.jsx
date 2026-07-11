@@ -20,6 +20,11 @@ const COUNT_KEYS = new Set([
   'activation', 'churn', 'renewal',
 ]);
 
+const TOTAL_KEYS = new Set([
+  'activation', 'parking', 'activationPending', 'churn', 'renewal',
+  'actRev', 'renewRev', 'totalRev', 'totalRevUsd',
+]);
+
 const EXPORT_NUM_KEYS = new Set([
   'pricePoint', 'activation', 'parking', 'activationPending', 'churn', 'renewal',
   'actRev', 'renewRev', 'totalRev', 'totalRevUsd',
@@ -132,8 +137,38 @@ function sortRows(rows) {
   });
 }
 
-function Cell({ col, row }) {
+function sumField(rows, key) {
+  return rows.reduce((sum, row) => {
+    const n = Number(row[key]);
+    return sum + (Number.isFinite(n) ? n : 0);
+  }, 0);
+}
+
+function computeTotals(rows) {
+  const totals = { _isTotal: true };
+  TOTAL_KEYS.forEach(key => {
+    const sum = sumField(rows, key);
+    if (key === 'actRev' || key === 'renewRev' || key === 'totalRev' || key === 'totalRevUsd') {
+      totals[key] = sum > 0 ? sum.toFixed(2) : null;
+    } else {
+      totals[key] = sum > 0 ? sum : null;
+    }
+  });
+  return totals;
+}
+
+const TOTAL_LABEL_COLS = 6; // Date through Price Point
+
+function Cell({ col, row, isTotal = false }) {
   const v = row[col.key];
+
+  if (isTotal) {
+    if (!TOTAL_KEYS.has(col.key)) return <NullCell />;
+    if (v == null || v === 0) return <NullCell />;
+    if (col.key === 'actRev' || col.key === 'renewRev' || col.key === 'totalRev' || col.key === 'totalRevUsd')
+      return <strong className="ct-rev">{v}</strong>;
+    return <strong>{Number(v).toLocaleString()}</strong>;
+  }
 
   if (col.key === 'parking' || col.key === 'activationPending') {
     if (v == null || v === 0) return <NullCell />;
@@ -151,6 +186,21 @@ function Cell({ col, row }) {
   if (col.key === 'actRev' || col.key === 'renewRev' || col.key === 'totalRev' || col.key === 'totalRevUsd')
     return <span className="ct-rev">{v}</span>;
   return typeof v === 'number' ? v.toLocaleString() : v;
+}
+
+function TotalRow({ totals }) {
+  return (
+    <tr className="demo-table-total-row">
+      <td colSpan={TOTAL_LABEL_COLS} className="demo-table-total-label">
+        <strong>Total</strong>
+      </td>
+      {COLS.slice(TOTAL_LABEL_COLS).map(c => (
+        <td key={c.key}>
+          <Cell col={c} row={totals} isTotal />
+        </td>
+      ))}
+    </tr>
+  );
 }
 
 function summaryApiParams(filters, day) {
@@ -226,6 +276,7 @@ export default function SummaryReports() {
 
   const dateLabel = formatDateRangeLabel(filters.startDate, filters.endDate);
   const visibleRows = rows.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
+  const totals = rows.length ? computeTotals(rows) : null;
 
   const exportCsv = () => {
     if (!rows.length) return;
@@ -237,6 +288,13 @@ export default function SummaryReports() {
       else if (EXPORT_NUM_KEYS.has(c.key)) val = excelNum(val);
       return val ?? '';
     }));
+    if (totals) {
+      dataRows.push(COLS.map(c => {
+        if (c.key === 'date') return 'Total';
+        if (!TOTAL_KEYS.has(c.key)) return '';
+        return excelNum(totals[c.key]);
+      }));
+    }
     downloadCsv(`summary_${filters.startDate}_${filters.endDate}.csv`, headers, dataRows);
   };
 
@@ -263,8 +321,8 @@ export default function SummaryReports() {
           </div>
         )}
 
-        <div className="demo-table-wrap">
-          <table className="demo-table">
+        <div className="demo-table-wrap demo-table-wrap-summary">
+          <table className="demo-table demo-table-summary">
             <thead>
               <tr className="demo-thead-row">
                 {COLS.map(c => (
@@ -297,6 +355,11 @@ export default function SummaryReports() {
                 ))
               )}
             </tbody>
+            {!loading && totals && (
+              <tfoot>
+                <TotalRow totals={totals} />
+              </tfoot>
+            )}
           </table>
         </div>
 
