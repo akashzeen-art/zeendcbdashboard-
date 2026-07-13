@@ -5,15 +5,17 @@ import { PricePointFilterBar, DEFAULT_PRICEPOINT_FILTERS } from './FilterPanel';
 import { totalsFromHourlyData, billerFromHourly, applySheetNumberFormats, summaryParking } from './utils';
 import * as XLSX from 'xlsx';
 
-// Local currency → USD divisor. Adjust the rates if the FX changes.
+import { SDG_USD_RATE } from './utils';
+
+// Local currency → USD. SDG uses Total SDG Revenue × 0.0017 / 7.35
 const CURRENCY_RATES = {
-  SD_MTN: { code: 'SDG', usdDivisor: 600 },
-  NG_MTN: { code: 'NGN', usdDivisor: 1550 },
+  SD_MTN: { code: 'SDG', toUsd: (n) => n * SDG_USD_RATE },
+  NG_MTN: { code: 'NGN', toUsd: (n) => n / 1550 },
 };
 
 function currencyFor(operatorName) {
   const key = (operatorName || '').toUpperCase().trim();
-  return CURRENCY_RATES[key] || { code: 'Local', usdDivisor: 1 };
+  return CURRENCY_RATES[key] || { code: 'Local', toUsd: (n) => n };
 }
 
 function getDaysInRange(startDate, endDate) {
@@ -83,7 +85,7 @@ function buildDayGroups(day, apiRows, hourlyForDay, filters) {
       sendCount += t.stp;
     });
 
-    const { code, usdDivisor } = currencyFor(g.operatorName);
+    const { code, toUsd } = currencyFor(g.operatorName);
     const totalLocal = gaRev + renRev;
 
     out.push({
@@ -103,7 +105,7 @@ function buildDayGroups(day, apiRows, hourlyForDay, filters) {
       parking,
       churn,
       totalLocal,
-      totalUsd: totalLocal / usdDivisor,
+      totalUsd: toUsd(totalLocal),
       actArpu: totalGa  > 0 ? gaRev  / totalGa  : 0,
       renArpu: totalRen > 0 ? renRev / totalRen : 0,
       _rowKey: `${day}-${g.operatorId}-${g.serviceName}`,

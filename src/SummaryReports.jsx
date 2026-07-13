@@ -21,12 +21,12 @@ const COUNT_KEYS = new Set([
 ]);
 
 const TOTAL_KEYS = new Set([
-  'activation', 'parking', 'activationPending', 'churn', 'renewal',
+  'activation', 'parking', 'activationPending', 'grace', 'churn', 'renewal',
   'actRev', 'renewRev', 'totalRev', 'totalRevUsd',
 ]);
 
 const EXPORT_NUM_KEYS = new Set([
-  'pricePoint', 'activation', 'parking', 'activationPending', 'churn', 'renewal',
+  'pricePoint', 'activation', 'parking', 'activationPending', 'grace', 'churn', 'renewal',
   'actRev', 'renewRev', 'totalRev', 'totalRevUsd',
 ]);
 
@@ -41,6 +41,7 @@ const COLS = [
   { key: 'activation',        label: 'ACT' },
   { key: 'parking',           label: 'PARK' },
   { key: 'activationPending', label: 'ACTP' },
+  { key: 'grace',             label: 'Grace' },
   { key: 'churn',             label: 'Dct' },
   { key: 'renewal',           label: 'RENEW' },
   { key: 'actRev',            label: 'Act Rev' },
@@ -84,6 +85,7 @@ function mapSummaryRow(r, day) {
     activation: apiNum(r.activation),
     parking: summaryParking(r),
     activationPending: apiNum(r.activationPending),
+    grace: apiNum(r.grace),
     churn: apiNum(r.churn),
     renewal: apiNum(r.renewal),
     actRev: fmtLocalRev(actRev),
@@ -170,7 +172,7 @@ function Cell({ col, row, isTotal = false }) {
     return <strong>{Number(v).toLocaleString()}</strong>;
   }
 
-  if (col.key === 'parking' || col.key === 'activationPending') {
+  if (col.key === 'parking' || col.key === 'activationPending' || col.key === 'grace') {
     if (v == null || v === 0) return <NullCell />;
     return Number(v).toLocaleString();
   }

@@ -66,9 +66,11 @@ export function totalsFromHourlyData(hourlyData) {
   return sumHourlyTotals(parseHourlyData(hourlyData));
 }
 
-/** Local currency → USD divisors by operator code. */
+/** SDG → USD: Total SDG Revenue × 0.0017 / 7.35 */
+export const SDG_USD_RATE = 0.0017 / 7.35;
+
+/** Local currency → USD divisors by operator code (non-SDG). */
 const USD_DIVISORS = {
-  SD_MTN:    600,
   NG_MTN:    1550,
   SAFARICOM: 130,
 };
@@ -78,10 +80,17 @@ export function usdDivisorFor(operatorName) {
   return USD_DIVISORS[key] || null;
 }
 
+function isSdgOperator(operatorName) {
+  const key = (operatorName || '').toUpperCase().trim();
+  return key === 'SD_MTN' || key.includes('SD_MTN') || key.includes('SDG');
+}
+
 /** Convert local revenue to USD; returns null when no rate is configured. */
 export function localToUsd(amount, operatorName) {
+  if (!amount) return null;
+  if (isSdgOperator(operatorName)) return amount * SDG_USD_RATE;
   const divisor = usdDivisorFor(operatorName);
-  if (!divisor || !amount) return null;
+  if (!divisor) return null;
   return amount / divisor;
 }
 
